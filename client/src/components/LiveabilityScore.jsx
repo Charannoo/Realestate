@@ -8,8 +8,8 @@ function LiveabilityScore({ property, isOpen, onClose }) {
 
     useEffect(() => {
         if (!isOpen) return;
-        
-        setLoading(true);
+
+        queueMicrotask(() => setLoading(true));
         const timer = setTimeout(() => {
             const baseScore = 72;
             const locationFactor = property?.location?.toLowerCase().includes('central') ? 15 : 

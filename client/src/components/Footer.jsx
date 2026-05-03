@@ -22,7 +22,7 @@ function Footer() {
             <div className="container footer-content">
                 <div className="footer-brand">
                     <Link to="/" className="logo">Urbanova.</Link>
-                    <p>Premium Real Estate Marketplace.</p>
+                    <p>Hyderabad‑metro listings &mdash; GHMC · Cyberabad · ORR growth corridors.</p>
                 </div>
 
                 <div className="footer-links">
@@ -74,7 +74,7 @@ function Footer() {
                 </div>
             </div>
             <div className="footer-bottom container">
-                <p>&copy; 2024 Estate Platform. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Urbanova. Demonstration catalogue — illustrative photos and pins may not depict the exact parcels.</p>
             </div>
         </footer>
     );

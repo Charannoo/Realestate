@@ -1,11 +1,17 @@
 {
   "scripts": {
+    "setup": "npm install && cd server && npm install && cd ../client && npm install",
+    "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup.ps1",
+    "smoke:openrouter": "node scripts/test-api.js",
+    "check:env": "cd server && npm run check:env",
+    "create:admin": "cd server && npm run create:admin",
+    "seed:hyderabad": "cd server && npm run seed:hyderabad",
+    "verify": "npm run lint:client && npm run build:client",
+    "lint:client": "cd client && npm run lint",
+    "build:client": "cd client && npm run build",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
-  },
-  "dependencies": {
-    "mongodb": "^7.2.0"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

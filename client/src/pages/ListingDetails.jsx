@@ -6,8 +6,19 @@ import Toast from '../components/Toast';
 import MortgageCalculator from '../components/MortgageCalculator';
 import NegotiationAssistant from '../components/NegotiationAssistant';
 import LiveabilityScore from '../components/LiveabilityScore';
+import PropertyDualMap from '../components/PropertyDualMap.jsx';
 
-function ListingDetails({ user, adminUser }) {
+/** OSM bbox: Greater Hyderabad corridor when listing has no stored coordinates */
+const HYDERABAD_REGION_EMBED =
+    'https://www.openstreetmap.org/export/embed.html?bbox=78.20%2C17.26%2C78.72%2C17.62&layer=mapnik';
+
+function toCoordNumber(value) {
+    if (value == null || value === '') return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : null;
+}
+function ListingDetails({ user }) {
     const { id } = useParams();
     const navigate = useNavigate();
     const [property, setProperty] = useState(null);
@@ -53,27 +64,26 @@ function ListingDetails({ user, adminUser }) {
         setScheduleSuccess(true);
     }
 
-    const closeContactModal = () => {
-        setShowContactModal(false);
-        setContactSuccess(false);
-    }
-
-    const closeScheduleModal = () => {
-        setShowScheduleModal(false);
-        setScheduleSuccess(false);
-    }
-
     const getImageUrl = (img) => {
         if (!img) return null;
         if (img.startsWith('http')) return img;
         return `http://localhost:5000/uploads/${img}`;
-    }
+    };
 
+    const HERO_FALLBACK_IMAGE =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Charminar%2C_Hyderabad.jpg/1280px-Charminar%2C_Hyderabad.jpg';
 
     // Safety check for critical data
     if (!property || !property.title) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>Loading or Error...</div>;
 
-    const price = property.price ? property.price.toLocaleString() : 'N/A';
+    const mapLat = toCoordNumber(property.latitude);
+    const mapLng = toCoordNumber(property.longitude);
+    const addressLine = [property.location, property.pincode].filter(Boolean).join(', ');
+    const googleMapsAddressUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLine)}`;
+    const googleMapsPinUrl =
+        mapLat != null && mapLng != null
+            ? `https://www.google.com/maps/search/?api=1&query=${mapLat}%2C${mapLng}`
+            : googleMapsAddressUrl;
 
     // Debugging ownership
     const isOwner = (() => {
@@ -102,12 +112,23 @@ function ListingDetails({ user, adminUser }) {
 
             {/* Cinematic Hero Section */}
             <div style={{ position: 'relative', height: '60vh', width: '100%', overflow: 'hidden' }}>
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    backgroundImage: `url(${getImageUrl(property.image)})`,
-                    backgroundSize: 'cover', backgroundPosition: 'center',
-                    filter: 'brightness(0.7)'
-                }}></div>
+                <img
+                    src={getImageUrl(property.image) || HERO_FALLBACK_IMAGE}
+                    alt={property.title}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                        e.currentTarget.src = HERO_FALLBACK_IMAGE;
+                    }}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        filter: 'brightness(0.7)',
+                    }}
+                />
                 <div style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                     background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), #050505)'
@@ -133,30 +154,101 @@ function ListingDetails({ user, adminUser }) {
                     <div style={{ background: '#111', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '3rem' }}>
                         <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>About this property</h2>
                         <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1rem', whiteSpace: 'pre-line' }}>{property.description}</p>
+                        {property.image_credit ? (
+                            <p
+                                role="note"
+                                style={{
+                                    marginTop: '1.25rem',
+                                    paddingTop: '1rem',
+                                    borderTop: '1px solid var(--border)',
+                                    fontSize: '0.8rem',
+                                    lineHeight: 1.55,
+                                    color: 'var(--text-secondary)',
+                                }}
+                            >
+                                {property.image_credit}
+                            </p>
+                        ) : null}
                     </div>
 
-                    {/* Visual Map Placeholder */}
+                    {/* Embedded map — OSM marker when lat/lng exist; metro overview fallback */}
                     <div style={{ background: '#111', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Location</h2>
-                        <div style={{
-                            width: '100%', height: '300px', borderRadius: '12px',
-                            background: 'url(https://docs.mapbox.com/mapbox-gl-js/assets/radar.gif)', // Placeholder map graphic
-                            backgroundSize: 'cover', backgroundPosition: 'center',
-                            position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.4)' }}></div>
-                            <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.location + ' ' + (property.pincode || ''))}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ position: 'relative', background: '#fff', color: '#000', padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', textDecoration: 'none', borderRadius: '8px' }}
-                            >
-                                <MapPin size={18} /> View on Google Maps
-                            </a>
-                        </div>
-                        <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                            {property.location} {property.pincode ? `, ${property.pincode}` : ''}
-                        </p>
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.25rem' }}>Location</h2>
+                        {mapLat != null && mapLng != null ? (
+                            <>
+                                <PropertyDualMap
+                                    lat={mapLat}
+                                    lng={mapLng}
+                                    title={property.title}
+                                    addressLabel={`${addressLine}\nApprox. ${mapLat.toFixed(5)}°N · ${mapLng.toFixed(5)}°E`}
+                                    hideLayerSwitcher
+                                    height={360}
+                                />
+                                <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
+                                    <a
+                                        href={googleMapsPinUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.35rem',
+                                            background: '#fff',
+                                            color: '#000',
+                                            padding: '0.6rem 1.1rem',
+                                            fontWeight: 600,
+                                            textDecoration: 'none',
+                                            borderRadius: '8px',
+                                            fontSize: '0.9rem',
+                                        }}
+                                    >
+                                        <MapPin size={17} aria-hidden /> Open in Google Maps
+                                    </a>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                                    No GPS pin saved yet for this listing — map shows Greater Hyderabad context. Use the button below for navigation to the full address.
+                                </p>
+                                <iframe
+                                    title="Greater Hyderabad overview"
+                                    src={HYDERABAD_REGION_EMBED}
+                                    width="100%"
+                                    height={360}
+                                    style={{ border: 0, borderRadius: '12px' }}
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                />
+                                <p style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                    © <a href="https://openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>OpenStreetMap</a>
+                                </p>
+                                <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
+                                    <a
+                                        href={googleMapsAddressUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.35rem',
+                                            background: '#fff',
+                                            color: '#000',
+                                            padding: '0.6rem 1.1rem',
+                                            fontWeight: 600,
+                                            textDecoration: 'none',
+                                            borderRadius: '8px',
+                                            fontSize: '0.9rem',
+                                        }}
+                                    >
+                                        <MapPin size={17} aria-hidden /> Open address in Google Maps
+                                    </a>
+                                </div>
+                                <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.95rem', whiteSpace: 'pre-line' }}>
+                                    {addressLine}
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
 

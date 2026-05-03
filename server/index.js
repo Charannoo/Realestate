@@ -16,12 +16,16 @@ const propertyRoute = require('./routes/properties');
 const adminRoute = require('./routes/admin');
 const logsRoute = require('./routes/logs');
 const usersRoute = require('./routes/users');
+const aiRoute = require('./routes/ai');
+const geoRoute = require('./routes/geo');
 
 app.use('/api/auth', authRoute);
 app.use('/api/properties', propertyRoute);
 app.use('/api/admin', adminRoute);
 app.use('/api/logs', logsRoute);
 app.use('/api/users', usersRoute);
+app.use('/api/ai', aiRoute);
+app.use('/api/geo', geoRoute);
 
 app.get('/', (req, res) => {
     res.send('Real Estate Marketplace API is running');
@@ -33,4 +37,9 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET?.trim())) {
+        console.warn(
+            '[server] JWT_SECRET is unset in NODE_ENV=production — set a strong secret before exposing this API publicly.'
+        );
+    }
 });

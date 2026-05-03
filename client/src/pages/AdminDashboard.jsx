@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Building2, Trash2, TrendingUp, DollarSign, Edit2, X, Save, CheckCircle, Menu, Moon, Sun, LayoutDashboard, LogOut, Activity, FileText } from 'lucide-react';
+import { Users, Building2, Trash2, TrendingUp, DollarSign, Edit2, X, Save, CheckCircle, Menu, LayoutDashboard, LogOut, Activity, FileText } from 'lucide-react';
 import '../index.css';
 import Toast from '../components/Toast';
 import AdminAnalytics from '../components/AdminAnalytics';
@@ -16,14 +16,12 @@ function AdminDashboard() {
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
 
-    // UI States
-    const [theme, setTheme] = useState('dark');
+    useEffect(() => {
+        document.body.setAttribute('data-theme', 'dark');
+    }, []);
+
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('stats');
-
-    useEffect(() => {
-        document.body.setAttribute('data-theme', theme);
-    }, [theme]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -38,6 +36,7 @@ function AdminDashboard() {
             }
         };
         loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot bootstrap; listing fetch fns would churn if dependency-listed
     }, []);
 
     const getAuthHeaders = (includeContentType = true) => {
@@ -71,7 +70,9 @@ function AdminDashboard() {
     };
 
     const fetchProperties = async () => {
-        const res = await fetch('/api/properties');
+        const res = await fetch('/api/properties?scope=all', {
+            headers: getAuthHeaders(false),
+        });
         if (!res.ok) throw new Error('Failed to fetch properties');
         const data = await res.json();
         setProperties(Array.isArray(data) ? data : []);
@@ -96,19 +97,18 @@ function AdminDashboard() {
             });
             fetchVerifications();
             setToast({ message: `Seller verification ${status}.`, type: 'success' });
-        } catch (err) {
+        } catch {
             setToast({ message: 'Failed to update verification', type: 'error' });
         }
     };
 
     const [selectedProperties, setSelectedProperties] = useState([]);
 
-    const handleSelectAll = (e) => {
-        if (e.target.checked) {
-            setSelectedProperties(properties.map(p => p._id));
-        } else {
-            setSelectedProperties([]);
-        }
+    const handleToggleSelectAll = () => {
+        if (properties.length === 0) return;
+        const allIds = properties.map((p) => p._id);
+        if (selectedProperties.length === properties.length) setSelectedProperties([]);
+        else setSelectedProperties(allIds);
     };
 
     const handleSelectOne = (id) => {
@@ -143,7 +143,7 @@ function AdminDashboard() {
                 await fetchStats();
                 setSelectedProperties([]);
                 setToast({ message: 'Successfully deleted properties.', type: 'success' });
-            } catch (err) {
+            } catch {
                 setToast({ message: 'Failed to delete properties', type: 'error' });
             } finally {
                 setLoading(false);
@@ -178,7 +178,7 @@ function AdminDashboard() {
             await fetchProperties();
             await fetchStats();
             setToast({ message: `Successfully generated ${generateCount} properties!`, type: 'success' });
-        } catch (err) {
+        } catch {
             setToast({ message: 'Failed to generate properties', type: 'error' });
         } finally {
             setLoading(false);
@@ -226,7 +226,7 @@ function AdminDashboard() {
             else fetchProperties();
             fetchStats();
             setToast({ message: 'Update successful.', type: 'success' });
-        } catch (err) {
+        } catch {
             setToast({ message: 'Failed to update', type: 'error' });
         }
     };
@@ -609,11 +609,7 @@ function AdminDashboard() {
 
                         <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '1.5rem', gap: '0.75rem', paddingLeft: '0.5rem' }}>
                             <div
-                                onClick={() => {
-                                    const allIds = properties.map(p => p._id);
-                                    if (selectedProperties.length === properties.length) setSelectedProperties([]);
-                                    else setSelectedProperties(allIds);
-                                }}
+                                onClick={handleToggleSelectAll}
                                 className={properties.length > 0 && selectedProperties.length === properties.length ? 'neu-inset' : 'neu-outset'}
                                 style={{
                                     width: '32px', height: '32px',

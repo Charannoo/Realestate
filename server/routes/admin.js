@@ -136,7 +136,7 @@ router.put('/properties/:id', async (req, res) => {
     }
 });
 
-// Generate Random Properties (Telangana, India)
+// Demo bulk-insert — Greater Hyderabad metropolitan + peri-urban corridors only (public catalog filter).
 router.post('/generate-properties', verifyAdmin, async (req, res) => {
     const { count } = req.body;
     const num = parseInt(count) || 5;
@@ -199,12 +199,12 @@ router.post('/generate-properties', verifyAdmin, async (req, res) => {
             image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80"
         },
         {
-            title: "Investment Plot in Warangal Urban",
-            location: "Warangal Urban, Telangana",
-            description: "Prime 200 sq yd residential plot in the fast-developing Warangal Urban zone. HMDA/DTCP approved layout, fully compound walled, with road facing. Excellent appreciation potential near the proposed IT Special Economic Zone.",
-            price: 4200000,
-            pincode: "506002",
-            image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"
+            title: "3BHK Condo — Attapur Outer Ring Belt",
+            location: "Attapur, Hyderabad, Telangana",
+            description: "Spacious corner 3BHK with dual balconies overlooking the ORR greenery belt. Modular kitchen, two covered car parks, rainwater harvesting and 24/7 security. Minutes to schools and retail on PVNR Expressway corridors.",
+            price: 7900000,
+            pincode: "500048",
+            image: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80"
         },
         {
             title: "Heritage Bungalow in Secunderabad",
@@ -223,11 +223,11 @@ router.post('/generate-properties', verifyAdmin, async (req, res) => {
             image: "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=800&q=80"
         },
         {
-            title: "Independent House in Nizamabad",
-            location: "Nizamabad, Telangana",
-            description: "Well-maintained G+1 independent house in the heart of Nizamabad city. 4 bedrooms, 2 car parking, bore well, and municipal water connection. Ideal for a joint family. Close to government offices and railway station.",
-            price: 5500000,
-            pincode: "503001",
+            title: "Plot + Built-up — Manikonda IT Zone",
+            location: "Manikonda, Hyderabad, Telangana",
+            description: "North-east corner site with existing 2BHK shell — ideal for upgrade to G+2. Close to Wipro circle and Outer Ring ramps. Boundary wall completed; metro corridor accessible via feeder routes.",
+            price: 11200000,
+            pincode: "500089",
             image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80"
         },
         {
@@ -260,7 +260,9 @@ router.post('/generate-properties', verifyAdmin, async (req, res) => {
     try {
         const { error } = await supabase.from('properties').insert(generated);
         if (error) throw error;
-        res.status(200).json({ message: `Successfully generated ${num} Telangana properties.` });
+        res.status(200).json({
+            message: `Successfully generated ${num} Greater Hyderabad–metro demo listings.`,
+        });
     } catch (err) {
         res.status(500).json(err);
     }

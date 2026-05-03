@@ -9,16 +9,18 @@ function PropertyCard({ property }) {
     };
 
     const handleImageError = (e) => {
-        e.target.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80';
+        e.target.src =
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Charminar%2C_Hyderabad.jpg/960px-Charminar%2C_Hyderabad.jpg';
     };
 
     return (
-        <Link to={`/property/${property._id}`} className="card" style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+        <Link to={`/property/${property._id}`} className="card liquid-glass" style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
             <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
                 {property.image ? (
                     <img
                         src={getImageUrl(property.image)}
                         alt={property.title}
+                        referrerPolicy="no-referrer"
                         onError={handleImageError}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
                     />

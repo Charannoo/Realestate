@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { DollarSign, Percent, Calculator, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -7,31 +7,19 @@ function MortgageCalculator({ isOpen, onClose, price }) {
     const [downPayment, setDownPayment] = useState(price * 0.2);
     const [interestRate, setInterestRate] = useState(6.5);
     const [loanTerm, setLoanTerm] = useState(30);
-    const [monthlyPayment, setMonthlyPayment] = useState(0);
-
-    useEffect(() => {
-        calculateMortgage();
-    }, [loanAmount, downPayment, interestRate, loanTerm, price]);
-
-    // Update loan amount if property price changes and form hasn't been touched yet (optional behavior)
-    // For simplicity, we just initialize.
-
-    const calculateMortgage = () => {
+    const monthlyPayment = useMemo(() => {
         const principal = loanAmount - downPayment;
         const monthlyInterest = interestRate / 100 / 12;
         const numberOfPayments = loanTerm * 12;
 
-        if (principal <= 0) {
-            setMonthlyPayment(0);
-            return;
-        }
+        if (principal <= 0) return 0;
 
         const mortgage =
             (principal * monthlyInterest * Math.pow(1 + monthlyInterest, numberOfPayments)) /
             (Math.pow(1 + monthlyInterest, numberOfPayments) - 1);
 
-        setMonthlyPayment(isFinite(mortgage) ? mortgage : 0);
-    };
+        return isFinite(mortgage) ? mortgage : 0;
+    }, [loanAmount, downPayment, interestRate, loanTerm]);
 
     if (!isOpen) return null;
 

@@ -59,7 +59,8 @@ function Home({ openAuth, user }) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        Find Your <span style={{ color: 'var(--accent)' }}><TypingText text="Dream Space" delay={0.5} /></span>
+                        Hyderabad&apos;s Finest{' '}
+                        <span style={{ color: 'var(--accent)' }}><TypingText text="Urban Homes" delay={0.5} /></span>
                     </motion.h1>
                     <motion.p
                         className="hero-subtitle"
@@ -67,28 +68,28 @@ function Home({ openAuth, user }) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
                     >
-                        Premium properties curated for the modern lifestyle. Discover exclusive listings in prime locations.
+                        Verified-style inventory across Greater Hyderabad — from Jubilee & Banjara to the ORR growth belt. Real locality data, INR pricing, and tools for buyers & sellers grounded in Telangana metro reality.
                     </motion.p>
 
                     <motion.div
-                        className="stats-row"
+                        className="stats-row liquid-glass"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
                         <div className="stat">
-                            <span className="stat-number">1k+</span>
-                            <span className="stat-label">Premium Listings</span>
+                            <span className="stat-number">Metro</span>
+                            <span className="stat-label">Hyderabad‑first catalogue</span>
                         </div>
                         <div className="stat-divider"></div>
                         <div className="stat">
-                            <span className="stat-number">50+</span>
-                            <span className="stat-label">Major Cities</span>
+                            <span className="stat-number">500–501</span>
+                            <span className="stat-label">PIN bands + peri‑urban</span>
                         </div>
                         <div className="stat-divider"></div>
                         <div className="stat">
-                            <span className="stat-number">24/7</span>
-                            <span className="stat-label">Support</span>
+                            <span className="stat-number">₹ tiers</span>
+                            <span className="stat-label">Lakhs to premium Cr</span>
                         </div>
                     </motion.div>
 
@@ -116,8 +117,8 @@ function Home({ openAuth, user }) {
                         viewport={{ once: true, amount: 0.2 }}
                         transition={{ duration: 0.6 }}
                     >
-                        <h2>Featured Listings</h2>
-                        <p>Explore our most exclusive properties.</p>
+                        <h2>Featured in Hyderabad</h2>
+                        <p>Newest premium picks across GHMC corridors & nearby growth belts.</p>
                     </motion.div>
 
                     <motion.div
@@ -167,7 +168,7 @@ function Home({ openAuth, user }) {
                         transition={{ duration: 0.6 }}
                     >
                         <h2>Ready to Sell?</h2>
-                        <p style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>List your property with us and reach thousands of potential buyers today.</p>
+                        <p style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>Reach serious buyers scouting Jubilee, Cyberabad towers, Miyapur corridor & ORR neighbourhoods.</p>
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}

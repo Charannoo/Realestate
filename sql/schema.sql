@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS public.properties (
     location TEXT NOT NULL,
     pincode TEXT,
     image TEXT,
+    image_credit TEXT,
     user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     views INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),

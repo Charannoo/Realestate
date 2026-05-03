@@ -1,77 +1,124 @@
-# Real Estate Marketplace Platform
+# Urbanova — Hyderabad metropolitan marketplace
 
-A modern, full-stack real estate marketplace with a premium dark-themed UI.
+This repo implements the **Urbanova.** SPA — branded real estate tooling for Hyderabad’s metro corridors.
 
-## Project Structure
+- GHMC core, **Secunderabad / Cyberabad** tech belts  
+- Outer Ring (**ORR**) growth neighbourhoods  
+- Peri‑urban **Ranga Reddy**, **Medchal**, and **Sangareddy** style corridors aligned with plausible **500xxx / 501xxx** postal bands  
 
-This project is organized as a monorepo with separate `client` (Frontend) and `server` (Backend) directories.
+The **public catalogue** defaults to **Hyderabad‑metro‑scoped listings** on `GET /api/properties`. Administrators can retrieve the **full Supabase table** with `GET /api/properties?scope=all` and a valid admin JWT (`token: Bearer …` header).
+
+---
+
+## Monorepo layout
 
 ```
 real-estate-platform/
-├── client/                 # React Frontend
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Page components
-│   │   │   ├── Home.jsx           # Landing page with listings
-│   │   │   ├── AddListing.jsx     # Form to create new listings
-│   │   │   └── ListingDetails.jsx # Detailed view with modals
-│   │   ├── App.jsx         # Main router setup
-│   │   └── index.css       # Global styles (Dark Theme)
-│   ├── package.json        # Frontend dependencies
-│   └── vite.config.js      # Vite configuration
-│
-└── server/                 # Express Backend
-    ├── models/             # Mongoose Models
-    │   ├── Property.js     # Property schema
-    │   └── User.js         # User schema
-    ├── routes/             # API Routes
-    │   ├── auth.js         # Authentication endpoints
-    │   └── properties.js   # Property CRUD & Image Upload
-    ├── uploads/            # Directory for uploaded images
-    ├── index.js            # Server entry point
-    └── package.json        # Backend dependencies
+├── client/          React 19 · Vite 7 · React Router · Framer Motion
+├── server/          Express 5 · Supabase JS · JWT auth · uploads/
+├── sql/             Schema (`schema.sql`) + migrations & Supabase helpers
+├── docs/            Design / prompt notes (e.g. `FRONTEND_LOVABLE.md`, `MASTER_PROMPT.md`)
+├── scripts/         Local setup (`setup.ps1`) & dev helpers (HTML key tester, CLI smoke tests)
+└── …                Root `package.json` orchestrates `client` / `server` workflows
 ```
 
-## Features Implemented
+---
 
-- **Premium Dark UI**: Custom CSS with gold accents and gradients.
-- **Property Listings**: Create, Read, and Delete properties.
-- **Image Upload**: Upload images directly from your device.
-- **Interactive Modals**: 
-  - Contact Agent Form
-  - Schedule Viewing Form
-  - Delete Confirmation
-- **Responsive Design**: Mobile-friendly layout.
+## Prerequisites
 
-## Getting Started
+- **Node.js** 18+
+- **Supabase** project (`SUPABASE_URL` or `VITE_SUPABASE_URL`, plus `SUPABASE_SERVICE_ROLE_KEY` for server inserts or permissive dev RLS — see [`server/scripts/checkEnv.js`](server/scripts/checkEnv.js))
+- **`server/config/supabase.js`** uses **`SUPABASE_SERVICE_ROLE_KEY`** when set, otherwise **`VITE_SUPABASE_PUBLISHABLE_KEY`**; URL from **`SUPABASE_URL`** or **`VITE_SUPABASE_URL`**.
 
-### Prerequisites
-- Node.js installed
+Optional:
 
-### 1. Setup Backend
+- **`OPENROUTER_API_KEY`** — `/api/ai/chat` & `/api/ai/negotiate` (otherwise those routes return HTTP 503)
+- **`OPENROUTER_SITE_URL`** — public SPA origin passed to OpenRouter as `HTTP-Referer` (defaults to `http://localhost:5173`)
+- **`NOMINATIM_CONTACT_EMAIL`** — respectful usage of OSM Nominatim for geo tooling
+
+---
+
+## Quick start (repo root)
+
+**Windows (recommended):**
+
+```powershell
+.\scripts\setup.ps1
+```
+
+**Manual:**
+
 ```bash
-cd server
 npm install
-# Create a .env file with your MONGO_URI
+cd server && npm install && cd ../client && npm install
+```
+
+Create **`server/.env`** (copied from `server/.env.example` if present), then validate:
+
+```bash
+npm run check:env
+```
+
+Run **both** tiers:
+
+```bash
 npm run dev
 ```
-Server runs on `http://localhost:5000`.
 
-### 2. Setup Frontend
+| Service | URL |
+|---------|-----|
+| API | http://localhost:5000 |
+| Vite SPA | http://localhost:5173 (or next free port — see terminal) |
+
+---
+
+## Hyderabad demo seed
+
+Upsert fourteen curated **Hyderabad‑locality** placeholders (repeatable):
+
 ```bash
-cd client
-npm install
-npm run dev
+npm run seed:hyderabad
 ```
-Client runs on `http://localhost:5174`.
 
-## API Endpoints
+Requires DB columns per **`sql/migrate_hyderabad_geo_feed.sql`** for `external_id`, `source`, geo fields (`upsert` on `external_id`).
 
-- `GET /api/properties` - Get all listings
-- `GET /api/properties/:id` - Get single listing
-- `POST /api/properties` - Create listing (Multipart Form Data)
-- `DELETE /api/properties/:id` - Delete listing
+Admin UI can also mint additional **metro-only demos** via *Generate Properties* (templates are **Greater Hyderabad**, not statewide).
 
-## Notes
-- Authentication is currently simplified for demonstration purposes.
-- Images are stored locally in `server/uploads`.
+---
+
+## Notable HTTP routes
+
+- **Public catalogue (metro‑filtered):** `GET /api/properties`
+- **Full catalogue (admin):** `GET /api/properties?scope=all` + admin `token`
+- Single listing: `GET /api/properties/:uuid`
+- Auth: `/api/auth/*`
+- Hyderabad geo / enrichment: `/api/geo/*`
+- Assistant: `/api/ai/chat`, `/api/ai/negotiate`
+
+---
+
+## Front-end routes
+
+`/`, `/properties`, `/property/:id`, `/add`, `/seller`, marketing pages, `/bvy-estate` → `/admin`, `/api-test`.
+
+---
+
+## Legal / product reality
+
+Demo listings use illustrative **Hyderabad-linked** Wikimedia Commons photography (with optional `image_credit` when that column exists). Verified live inventory should use **your own** media plus consent and any **RERA / regional** disclaimers for your jurisdictions; persist provenance via **`source`** / **`external_id`**.
+
+---
+
+## Contributing workflow
+
+From repo root, lint + build the SPA:
+
+```bash
+npm run verify
+```
+
+Or manually: `cd client && npm run lint && npm run build`
+
+---
+
+Urbanova HYDERABAD scope is enforced in **`server/routes/properties.js`** via `HYDERABAD_METRO_OR`. Adjust predicates there if your commercial definition of “metro” evolves.

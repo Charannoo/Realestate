@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { Home as HomeIcon, PlusSquare, Building2, Search, User, LayoutGrid } from 'lucide-react';
+import { Home as HomeIcon, PlusSquare, Search, LayoutGrid } from 'lucide-react';
 import Home from './pages/Home';
 import Properties from './pages/Properties';
 import ListingDetails from './pages/ListingDetails';
@@ -14,6 +14,8 @@ import SellerDashboard from './pages/SellerDashboard';
 import About from './pages/About';
 import Careers from './pages/Careers';
 import Contact from './pages/Contact';
+import ApiTester from './pages/ApiTester';
+import AIChat from './components/AIChat';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -75,12 +77,6 @@ function App() {
   // Determine if we are in the Admin Portal "Context" (visual theme)
   const isAdminView = location.pathname === '/bvy-estate' || location.pathname.startsWith('/admin');
 
-  const checkAuth = () => {
-    // ... existing checkAuth logic ...
-  };
-
-  // ... (hooks are fine)
-
   const handleLogout = () => {
     // Check if we are logging out of admin or main
     if (isAdminView) {
@@ -96,8 +92,12 @@ function App() {
 
   return (
     // Router removed here as it is now in main.jsx
-    <div className="app">
-      <header className="navbar-wrapper">
+    <div className="app fluid-bg-container">
+      <div className="bg-blob bg-blob-1"></div>
+      <div className="bg-blob bg-blob-2"></div>
+      <div className="bg-blob bg-blob-3"></div>
+
+      <header className="navbar-wrapper liquid-glass">
         <nav className="navbar container">
           <Link to="/" className="logo">Urbanova.</Link>
           <div className="nav-links">
@@ -162,17 +162,24 @@ function App() {
       <Routes>
         <Route path="/" element={<Home openAuth={openAuth} user={user} />} />
         <Route path="/properties" element={<Properties />} />
-        <Route path="/property/:id" element={<ListingDetails user={user} adminUser={adminUser} />} />
+        <Route path="/property/:id" element={<ListingDetails user={user} />} />
         <Route path="/about" element={<About />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/add" element={user && (user.role === 'seller' || user.role === 'agent') ? <AddListing /> : <Navigate to="/" />} />
         <Route path="/seller" element={user && (user.role === 'seller' || user.role === 'agent') ? <SellerDashboard /> : <Navigate to="/" />} />
         <Route path="/admin" element={adminUser && adminUser.role === 'admin' ? <AdminDashboard /> : <Navigate to="/bvy-estate" />} />
+        
+        {/* Dedicated AI API Testing Route */}
+        <Route path="/api-test" element={<ApiTester />} />
 
         {/* Secret Admin Route */}
         <Route path="/bvy-estate" element={<AdminEntry onAdminLogin={handleAdminLogin} />} />
       </Routes>
+      
+      {/* Global AI Assistant */}
+      <AIChat />
+
       <Footer />
 
       {showAuthModal && !user && !loading && (

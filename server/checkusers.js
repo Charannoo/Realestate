@@ -1,11 +1,16 @@
-const mongoose = require('mongoose');
-const User = require('./models/User');
-require('dotenv').config();
+const supabase = require('./config/supabase');
 
 async function check() {
-    await mongoose.connect(process.env.MONGO_URI);
-    const users = await User.find({ username: { $in: ['buyer1', 'seller1', 'agent1'] } });
+    const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .in('username', ['buyer1', 'seller1', 'agent1']);
+
+    if (error) {
+        console.error('Error:', error);
+        return;
+    }
+
     console.log('Found users:', JSON.stringify(users, null, 2));
-    await mongoose.disconnect();
 }
 check();

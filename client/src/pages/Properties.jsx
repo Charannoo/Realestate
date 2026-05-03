@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import PropertyCard from "../components/PropertyCard.jsx";
 
 function Properties() {
     const [properties, setProperties] = useState([]);
-    const [filteredProperties, setFilteredProperties] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [priceRange, setPriceRange] = useState('all');
 
@@ -17,53 +16,50 @@ function Properties() {
             .then(data => {
                 if (Array.isArray(data)) {
                     setProperties(data);
-                    setFilteredProperties(data);
                 } else {
                     console.error("API returned non-array data:", data);
                     setProperties([]);
-                    setFilteredProperties([]);
                 }
             })
             .catch(err => console.error(err));
     }, []);
 
-    useEffect(() => {
+    const filteredProperties = useMemo(() => {
         let result = properties;
 
-        // Filter by Location/Title
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
-            result = result.filter(p =>
+            result = result.filter((p) =>
                 p.title.toLowerCase().includes(lowerTerm) ||
                 p.location.toLowerCase().includes(lowerTerm)
             );
         }
 
-        // Filter by Price
         if (priceRange !== 'all') {
             const [min, max] = priceRange.split('-').map(Number);
             if (max) {
-                result = result.filter(p => p.price >= min && p.price <= max);
+                result = result.filter((p) => p.price >= min && p.price <= max);
             } else {
-                // "500000+" case
-                result = result.filter(p => p.price >= min);
+                result = result.filter((p) => p.price >= min);
             }
         }
 
-        setFilteredProperties(result);
+        return result;
     }, [searchTerm, priceRange, properties]);
 
     return (
         <div className="container">
             <header className="hero" style={{ padding: '3rem 0', background: 'none', textAlign: 'center' }}>
-                <h1>Find Your Perfect Home</h1>
-                <p style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>Search listings by location, price, or name.</p>
+                <h1>Browse Greater Hyderabad</h1>
+                <p style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>
+                    Default inventory is metro-scoped (GHMC core, Cyberabad, ORR neighbourhoods, peri‑urban RR / Medchal / Sangareddy). Filter by locality or budget.
+                </p>
 
                 <div className="search-bar" style={{ display: 'flex', gap: '1rem', justifyContent: 'center', maxWidth: '800px', margin: '0 auto' }}>
                     <div className="input-with-icon" style={{ flex: 1, position: 'relative' }}>
                         <input
                             type="text"
-                            placeholder="Search by City, Zip, or Address..."
+                            placeholder="Try Banjara Hills, Miyapur, Gachibowli, or PIN 5000…"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{ margin: 0, paddingLeft: '1rem' }}
@@ -90,11 +86,18 @@ function Properties() {
                 ))}
                 {filteredProperties.length === 0 && (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-                        <p>No listings found matching your search.</p>
+                        <p>No listings match this search.</p>
                         {properties.length === 0 && (
-                            <Link to="/add">
-                                <button style={{ marginTop: '1rem' }}>Create First Listing</button>
-                            </Link>
+                            <>
+                                <p style={{ marginTop: '0.75rem', fontSize: '0.9rem', maxWidth: '480px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
+                                    In Supabase (<strong>same project</strong> as <code style={{ color: 'var(--accent)' }}>server/.env</code>), run{' '}
+                                    <code style={{ color: 'var(--accent)' }}>sql/bootstrap_estate_dev.sql</code> once (tables, geo columns, dev anon policies so the API key can upsert listings).{' '}
+                                    Then from repo root run <code style={{ color: 'var(--accent)' }}>npm run seed:hyderabad</code>. Prefer <code style={{ color: 'var(--accent)' }}>SUPABASE_SERVICE_ROLE_KEY</code> on the server instead of widening anon policies in production.
+                                </p>
+                                <Link to="/add">
+                                    <button style={{ marginTop: '1rem' }}>Create listing</button>
+                                </Link>
+                            </>
                         )}
                     </div>
                 )}

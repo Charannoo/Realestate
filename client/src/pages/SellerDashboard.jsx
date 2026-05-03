@@ -49,7 +49,8 @@ function SellerDashboard() {
         };
 
         fetchStats();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `user` merges in-effect; full `user` dep would loop
+    }, [user?.token]);
 
     const handleVerificationSubmit = async (e) => {
         e.preventDefault();

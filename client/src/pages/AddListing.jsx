@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Upload, Sparkles } from 'lucide-react';
 import Toast from '../components/Toast';
@@ -122,7 +122,7 @@ function AddListing() {
 
                 <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Property Title</label>
-                    <input name="title" placeholder="e.g. Modern Penthouse in Downtown" value={formData.title} onChange={handleChange} required />
+                    <input name="title" placeholder="e.g. 3BHK — Serilingampally near ORR" value={formData.title} onChange={handleChange} required />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '1.5rem' }}>
@@ -131,8 +131,8 @@ function AddListing() {
                         <input name="price" type="number" placeholder="10000000" value={formData.price} onChange={handleChange} required />
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Location</label>
-                        <input name="location" placeholder="e.g. Jubilee Hills, Hyderabad" value={formData.location} onChange={handleChange} required />
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Full address locality</label>
+                        <input name="location" placeholder="e.g. Road No 12 Banjara Hills, Hyderabad, Telangana" value={formData.location} onChange={handleChange} required />
                     </div>
                 </div>
 

@@ -11,3 +11,7 @@
 
 # Dependencies
 node_modules/
+
+# Build output (avoid stale hashed bundles in repo)
+client/dist/
+dist/

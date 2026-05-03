@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-function AdminAnalytics({ stats, users, properties }) {
+function AdminAnalytics({ users, properties }) {
     // 1. Calculate User Roles Distribution
     const userRoles = users.reduce((acc, user) => {
         acc[user.role] = (acc[user.role] || 0) + 1;
@@ -41,7 +41,7 @@ function AdminAnalytics({ stats, users, properties }) {
                     <svg width="200" height="200" viewBox="0 0 100 100">
                         {(() => {
                             let cumulativePercent = 0;
-                            return roleData.map((role, i) => {
+                            return roleData.map((role) => {
                                 const percent = role.value / totalUsers;
                                 const startAngle = cumulativePercent * Math.PI * 2;
                                 cumulativePercent += percent;

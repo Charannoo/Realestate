@@ -1,22 +1,22 @@
-const mongoose = require('mongoose');
-const Property = require('./models/Property');
-const User = require('./models/User');
-require('dotenv').config();
+const supabase = require('./config/supabase');
 
 async function seedProperties() {
     try {
-        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/real-estate');
-        console.log("Connected to MongoDB...");
+        console.log('Connected to Supabase...');
 
         // Fetch a user to associate the properties with
-        const agent = await User.findOne({ username: 'agent1' });
-        
+        const { data: agent } = await supabase
+            .from('users')
+            .select('id')
+            .eq('username', 'agent1')
+            .single();
+
         let agentId = null;
         if (agent) {
-            agentId = agent._id;
-            console.log("Found agent1, linking properties to this user.");
+            agentId = agent.id;
+            console.log('Found agent1, linking properties to this user.');
         } else {
-            console.log("User agent1 not found, properties will have no associated user.");
+            console.log('User agent1 not found, properties will have no associated user.');
         }
 
         const sampleProperties = [
@@ -27,7 +27,7 @@ async function seedProperties() {
                 location: "Manhattan, New York",
                 pincode: "10019",
                 image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-                user: agentId,
+                user_id: agentId,
                 views: 342
             },
             {
@@ -37,7 +37,7 @@ async function seedProperties() {
                 location: "Malibu, California",
                 pincode: "90265",
                 image: "https://images.unsplash.com/photo-1613490908578-8318182283a0?auto=format&fit=crop&w=1200&q=80",
-                user: agentId,
+                user_id: agentId,
                 views: 890
             },
             {
@@ -47,7 +47,7 @@ async function seedProperties() {
                 location: "Portland, Oregon",
                 pincode: "97205",
                 image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80",
-                user: agentId,
+                user_id: agentId,
                 views: 512
             },
             {
@@ -57,7 +57,7 @@ async function seedProperties() {
                 location: "Boston, Massachusetts",
                 pincode: "02116",
                 image: "https://images.unsplash.com/photo-1600607688969-a5bfcd64bd28?auto=format&fit=crop&w=1200&q=80",
-                user: agentId,
+                user_id: agentId,
                 views: 420
             },
             {
@@ -67,23 +67,24 @@ async function seedProperties() {
                 location: "Austin, Texas",
                 pincode: "78704",
                 image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
-                user: agentId,
+                user_id: agentId,
                 views: 1250
             }
         ];
 
-        // Clear existing test properties if you want (optional, but let's just add new ones for now)
-        // await Property.deleteMany({});
-        
-        console.log("Inserting sample properties...");
-        await Property.insertMany(sampleProperties);
-        console.log(`${sampleProperties.length} properties added successfully!`);
+        console.log('Inserting sample properties...');
+        const { data: inserted, error } = await supabase.from('properties').insert(sampleProperties).select();
+
+        if (error) {
+            console.error('Error inserting properties:', error);
+        } else {
+            console.log(`${inserted.length} properties added successfully!`);
+        }
 
     } catch (err) {
-        console.error("Error seeding properties: ", err);
+        console.error('Error seeding properties:', err);
     } finally {
-        await mongoose.disconnect();
-        console.log("Disconnected from MongoDB.");
+        console.log('Done.');
     }
 }
 
