@@ -1,6 +1,6 @@
 /**
  * Smoke-test OpenRouter chat completions from the CLI.
- * Usage: OPENROUTER_API_KEY=sk-or-v1-... node scripts/test-api.js
+ * Usage (repo root): OPENROUTER_API_KEY=sk-or-v1-... node server/scripts/test-api.js
  */
 const https = require('https');
 

@@ -12,15 +12,21 @@ The **public catalogue** defaults to **Hyderabad‑metro‑scoped listings** on 
 
 ## Monorepo layout
 
+The repo surface is **`client/`**, **`server/`**, and **`sql/`**.
+
+Root-level **`package.json`** (with **`package-lock.json`**) orchestrates installs and **`npm run dev`** via `concurrently`. That is intentional so you install once at the repo root after cloning.
+
 ```
 real-estate-platform/
 ├── client/          React 19 · Vite 7 · React Router · Framer Motion
 ├── server/          Express 5 · Supabase JS · JWT auth · uploads/
+│   └── scripts/     `setup.ps1`, `checkEnv.js`, OpenRouter smoke test, one-off DB helpers
 ├── sql/             Schema (`schema.sql`) + migrations & Supabase helpers
-├── docs/            Design / prompt notes (e.g. `FRONTEND_LOVABLE.md`, `MASTER_PROMPT.md`)
-├── scripts/         Local setup (`setup.ps1`) & dev helpers (HTML key tester, CLI smoke tests)
-└── …                Root `package.json` orchestrates `client` / `server` workflows
+├── package.json     Root scripts: `dev`, `setup`, `verify`, etc.
+└── README.md
 ```
+
+Optional dev-only: open `server/scripts/openrouter-key-tester.html` in a browser to probe an OpenRouter key (same as `npm run smoke:openrouter`, but interactive).
 
 ---
 
@@ -43,7 +49,7 @@ Optional:
 **Windows (recommended):**
 
 ```powershell
-.\scripts\setup.ps1
+powershell -ExecutionPolicy Bypass -File server/scripts/setup.ps1
 ```
 
 **Manual:**
@@ -67,8 +73,22 @@ npm run dev
 
 | Service | URL |
 |---------|-----|
-| API | http://localhost:5000 |
-| Vite SPA | http://localhost:5173 (or next free port — see terminal) |
+| API | `PORT` from `server/.env` (default **5000**) |
+| Vite SPA | http://localhost:5173 (or next free port — **proxy** forwards `/api` & `/uploads` to that same API port) |
+
+---
+
+## Production (single origin)
+
+After a successful client build, Express serves **`client/dist`** and **`/uploads`** when **`NODE_ENV=production`** and **`client/dist/index.html`** exists.
+
+```powershell
+npm run verify
+$env:NODE_ENV = "production"
+npm start
+```
+
+Then visit **http://localhost:5000** or whatever **`PORT`** is in `server/.env`. Omit `NODE_ENV=production` for API-only smoke tests — **`/`** then returns plain text instead of the SPA.
 
 ---
 
@@ -118,6 +138,10 @@ npm run verify
 ```
 
 Or manually: `cd client && npm run lint && npm run build`
+
+### Windows build: `EBUSY` / file locked
+
+If `vite build` fails while copying into `client/dist` (often `vite.svg`), close any Explorer windows on **`client/dist`**, stop **`vite preview`** / other tools using that folder, and retry. Temporarily pausing real-time antivirus scans for the repo can also help.
 
 ---
 

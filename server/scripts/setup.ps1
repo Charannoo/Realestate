@@ -1,9 +1,9 @@
 # One-time local setup for Urbanova (PowerShell).
-# Run from repo root:  .\scripts\setup.ps1
+# Run from repo root:  powershell -ExecutionPolicy Bypass -File server/scripts/setup.ps1
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Root = (Resolve-Path (Join-Path $ScriptRoot "..")).Path
+$Root = (Resolve-Path (Join-Path $ScriptRoot "..\\..")).Path
 Set-Location $Root
 
 $envExample = Join-Path $Root "server\.env.example"

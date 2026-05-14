@@ -2,7 +2,7 @@
  * One-off demo: insert a buyer row via Supabase Management API SQL.
  * Requires a personal access token (never commit): https://supabase.com/dashboard/account/tokens
  *
- * SUPABASE_ACCESS_TOKEN=sbp_... SUPABASE_PROJECT_REF=xxxx node scripts/add_buyer.js
+ * SUPABASE_ACCESS_TOKEN=sbp_... SUPABASE_PROJECT_REF=xxxx node server/scripts/add_buyer.js
  */
 const https = require('https');
 
