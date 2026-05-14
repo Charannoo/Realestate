@@ -37,7 +37,7 @@ app.use('/api/geo', geoRoute);
 /** Dev / API-only: acknowledge root. Production with built SPA skips this (React owns `/`). */
 if (!serveFrontend) {
     app.get('/', (req, res) => {
-        res.send('Real Estate Marketplace API is running — use npm run dev (Vite) for the SPA, or NODE_ENV=production after npm run build.');
+        res.send('Real Estate Marketplace API — from the server folder run `npm run dev` for API + Vite, or NODE_ENV=production after building the client (`npm run build` in ../client).');
     });
 }
 

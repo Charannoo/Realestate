@@ -12,21 +12,20 @@ The **public catalogue** defaults to **Hyderabad‑metro‑scoped listings** on 
 
 ## Monorepo layout
 
-The repo surface is **`client/`**, **`server/`**, and **`sql/`**.
+At the repo root you only keep **`client/`**, **`server/`**, **`sql/`**, plus **`README.md`** and **`.gitignore`**. There is **no** package manifest at the root.
 
-Root-level **`package.json`** (with **`package-lock.json`**) orchestrates installs and **`npm run dev`** via `concurrently`. That is intentional so you install once at the repo root after cloning.
+All orchestration (**`npm run dev`** for Express + Vite, **`npm run setup`**, **`npm run verify`**, smoke tests, etc.) lives in **[`server/package.json`](server/package.json)** — run npm commands **`cd server`** first (`node_modules` for the API and tooling live under **`server/node_modules`**; **`client/node_modules`** is separate).
 
 ```
 real-estate-platform/
-├── client/          React 19 · Vite 7 · React Router · Framer Motion
-├── server/          Express 5 · Supabase JS · JWT auth · uploads/
-│   └── scripts/     `setup.ps1`, `checkEnv.js`, OpenRouter smoke test, one-off DB helpers
+├── client/          React 19 · Vite 7 · React Router · package.json here (frontend only)
+├── server/          Express 5 · Supabase JWT · uploads/ · package.json carries monorepo scripts
+│   └── scripts/     setup.ps1, checkEnv.js, OpenRouter smoke test, one-off DB helpers
 ├── sql/             Schema (`schema.sql`) + migrations & Supabase helpers
-├── package.json     Root scripts: `dev`, `setup`, `verify`, etc.
 └── README.md
 ```
 
-Optional dev-only: open `server/scripts/openrouter-key-tester.html` in a browser to probe an OpenRouter key (same as `npm run smoke:openrouter`, but interactive).
+Optional dev-only: open `server/scripts/openrouter-key-tester.html` in a browser to probe an OpenRouter key (same as **`cd server` → `npm run smoke:openrouter`**).
 
 ---
 
@@ -44,9 +43,9 @@ Optional:
 
 ---
 
-## Quick start (repo root)
+## Quick start
 
-**Windows (recommended):**
+**Windows (recommended) — installs `server/` + `client/` deps:**
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File server/scripts/setup.ps1
@@ -54,26 +53,22 @@ powershell -ExecutionPolicy Bypass -File server/scripts/setup.ps1
 
 **Manual:**
 
-```bash
+```powershell
+cd server
 npm install
-cd server && npm install && cd ../client && npm install
+npm install --prefix ../client
 ```
 
-Create **`server/.env`** (copied from `server/.env.example` if present), then validate:
+Create **`server/.env`** (the setup script can copy **`server/.env.example`** when present). Then from **`server/`**:
 
-```bash
+```powershell
 npm run check:env
-```
-
-Run **both** tiers:
-
-```bash
 npm run dev
 ```
 
 | Service | URL |
 |---------|-----|
-| API | `PORT` from `server/.env` (default **5000**) |
+| API | **`PORT`** in `server/.env` (default **5000**) |
 | Vite SPA | http://localhost:5173 (or next free port — **proxy** forwards `/api` & `/uploads` to that same API port) |
 
 ---
@@ -83,6 +78,7 @@ npm run dev
 After a successful client build, Express serves **`client/dist`** and **`/uploads`** when **`NODE_ENV=production`** and **`client/dist/index.html`** exists.
 
 ```powershell
+cd server
 npm run verify
 $env:NODE_ENV = "production"
 npm start
@@ -97,7 +93,7 @@ Then visit **http://localhost:5000** or whatever **`PORT`** is in `server/.env`.
 Upsert fourteen curated **Hyderabad‑locality** placeholders (repeatable):
 
 ```bash
-npm run seed:hyderabad
+cd server && npm run seed:hyderabad
 ```
 
 Requires DB columns per **`sql/migrate_hyderabad_geo_feed.sql`** for `external_id`, `source`, geo fields (`upsert` on `external_id`).
@@ -134,7 +130,7 @@ Demo listings use illustrative **Hyderabad-linked** Wikimedia Commons photograph
 From repo root, lint + build the SPA:
 
 ```bash
-npm run verify
+cd server && npm run verify
 ```
 
 Or manually: `cd client && npm run lint && npm run build`

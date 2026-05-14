@@ -22,13 +22,9 @@ else {
     Write-Host "server\.env already exists — skipped copy."
 }
 
-Write-Host "Installing npm dependencies..."
-npm install
+Write-Host "Installing npm dependencies (server + client). Run all dev commands from the server folder:"
 Push-Location (Join-Path $Root "server")
-npm install
-Pop-Location
-Push-Location (Join-Path $Root "client")
-npm install
+npm run setup
 Pop-Location
 
 Write-Host "=== Supabase (browser) ===" -ForegroundColor Cyan
@@ -38,8 +34,9 @@ Write-Host "3. Fix RLS for local demo: paste sql/supabase_disable_rls_dev.sql"
 Write-Host ""
 Write-Host "=== This machine ===" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Then: npm run check:env"
-Write-Host "Then: npm run create:admin   (creates admin / admin123 after RLS fix)"
-Write-Host "Then: npm run seed:hyderabad   (14 demo Hyderabad listings)"
-Write-Host "Then: npm run dev"
+Write-Host "  cd server"
+Write-Host "  npm run check:env"
+Write-Host "  npm run create:admin      (optional; creates admin after RLS fix)"
+Write-Host "  npm run seed:hyderabad   (optional demo seed)"
+Write-Host "  npm run dev                (Express + Vite together)"
 Write-Host ""
