@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS public.properties (
     image_credit TEXT,
     user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     views INTEGER DEFAULT 0,
+    rera_registered BOOLEAN NOT NULL DEFAULT FALSE,
+    promoted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Users, Building2, Trash2, TrendingUp, DollarSign, Edit2, X, Save, CheckCircle, Menu, LayoutDashboard, LogOut, Activity, FileText } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Users, Building2, Trash2, DollarSign, Edit2, X, Save, CheckCircle, Menu, LayoutDashboard, Activity, FileText, Search } from 'lucide-react';
 import '../index.css';
 import Toast from '../components/Toast';
 import AdminAnalytics from '../components/AdminAnalytics';
-import TiltCard from '../components/TiltCard';
 import AdminLogs from '../components/AdminLogs';
+import { uploadUrl } from '../utils/uploadUrl.js';
 
 function AdminDashboard() {
     const [stats, setStats] = useState({ users: 0, properties: 0, totalValue: 0 });
@@ -103,12 +103,50 @@ function AdminDashboard() {
     };
 
     const [selectedProperties, setSelectedProperties] = useState([]);
+    const [listingSearch, setListingSearch] = useState('');
+    const [listingSort, setListingSort] = useState('newest');
+
+    const filteredSortedProperties = useMemo(() => {
+        let list = [...properties];
+        const q = listingSearch.trim().toLowerCase();
+        if (q) {
+            list = list.filter((p) => {
+                const title = String(p.title ?? '').toLowerCase();
+                const loc = String(p.location ?? '').toLowerCase();
+                const pin = String(p.pincode ?? '').toLowerCase();
+                const priceStr = String(p.price ?? '');
+                return title.includes(q) || loc.includes(q) || pin.includes(q) || priceStr.includes(q);
+            });
+        }
+        list.sort((a, b) => {
+            switch (listingSort) {
+                case 'oldest':
+                    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                case 'newest':
+                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                case 'price-high':
+                    return Number(b.price || 0) - Number(a.price || 0);
+                case 'price-low':
+                    return Number(a.price || 0) - Number(b.price || 0);
+                case 'title':
+                    return String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' });
+                default:
+                    return 0;
+            }
+        });
+        return list;
+    }, [properties, listingSearch, listingSort]);
 
     const handleToggleSelectAll = () => {
-        if (properties.length === 0) return;
-        const allIds = properties.map((p) => p._id);
-        if (selectedProperties.length === properties.length) setSelectedProperties([]);
-        else setSelectedProperties(allIds);
+        const list = filteredSortedProperties;
+        if (list.length === 0) return;
+        const visibleIds = list.map((p) => p._id);
+        const allVisibleSelected = visibleIds.every((id) => selectedProperties.includes(id));
+        if (allVisibleSelected) {
+            setSelectedProperties((prev) => prev.filter((id) => !visibleIds.includes(id)));
+        } else {
+            setSelectedProperties((prev) => [...new Set([...prev, ...visibleIds])]);
+        }
     };
 
     const handleSelectOne = (id) => {
@@ -165,26 +203,6 @@ function AdminDashboard() {
         });
     };
 
-    const [generateCount, setGenerateCount] = useState(5);
-
-    const handleGenerateProperties = async () => {
-        setLoading(true);
-        try {
-            await fetch('/api/admin/generate-properties', {
-                method: 'POST',
-                headers: getAuthHeaders(true),
-                body: JSON.stringify({ count: generateCount })
-            });
-            await fetchProperties();
-            await fetchStats();
-            setToast({ message: `Successfully generated ${generateCount} properties!`, type: 'success' });
-        } catch {
-            setToast({ message: 'Failed to generate properties', type: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleDeleteProperty = (id) => {
         openConfirm('Delete this listing permanently?', async () => {
             await fetch(`/api/admin/properties/${id}`, {
@@ -231,8 +249,8 @@ function AdminDashboard() {
         }
     };
 
-    if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Loading Dashboard...</div>;
-    if (error) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: '#ff6b6b' }}>{error}</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-on-background font-body-md">Loading Dashboard...</div>;
+    if (error) return <div className="min-h-screen flex items-center justify-center bg-background text-error font-body-md px-margin text-center">{error}</div>;
 
     const navItems = [
         { id: 'stats', label: 'Overview', icon: LayoutDashboard },
@@ -243,7 +261,7 @@ function AdminDashboard() {
     ];
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(135deg, #0b0c10 0%, #1f2833 100%)', color: '#c5c6c7', transition: 'background 0.3s ease, color 0.3s ease' }}>
+        <div className="flex min-h-screen bg-background text-on-background transition-colors">
             {toast && (
                 <Toast
                     message={toast.message}
@@ -495,7 +513,7 @@ function AdminDashboard() {
                                         <td style={{ padding: '1.5rem', color: '#aaa' }}>{u.email}</td>
                                         <td style={{ padding: '1.5rem' }}>
                                             {u.verificationDocument ? (
-                                                <a href={`http://localhost:5000/uploads/${u.verificationDocument}`} target="_blank" rel="noreferrer" style={{ color: '#d4af37', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
+                                                <a href={uploadUrl(u.verificationDocument)} target="_blank" rel="noreferrer" style={{ color: '#d4af37', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
                                                     <FileText size={18} /> View Document
                                                 </a>
                                             ) : (
@@ -577,30 +595,88 @@ function AdminDashboard() {
                 {/* Properties View */}
                 {activeTab === 'properties' && (
                     <div>
-                        <div className="neu-outset" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'center', padding: '1.5rem', borderRadius: '12px' }}>
-                            <h3 style={{ margin: 0, marginRight: 'auto', color: 'var(--text-primary)' }}>Property Generator</h3>
-                            <label style={{ color: 'var(--text-secondary)' }}>Count:</label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="50"
-                                value={generateCount}
-                                onChange={(e) => setGenerateCount(e.target.value)}
+                        <div
+                            className="neu-outset"
+                            style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '1rem',
+                                marginBottom: '2rem',
+                                alignItems: 'center',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                            }}
+                        >
+                            <div
                                 className="neu-inset"
-                                style={{ margin: 0, padding: '0.5rem 1rem', width: '80px', height: '40px', textAlign: 'center' }}
-                            />
-                            <button
-                                onClick={handleGenerateProperties}
-                                className="neu-outset"
-                                style={{ height: '40px', padding: '0 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                style={{
+                                    flex: '1 1 220px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '10px',
+                                    minHeight: '44px',
+                                }}
                             >
-                                Generate
-                            </button>
+                                <Search size={18} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                                <input
+                                    type="search"
+                                    placeholder="Search by title, location, pincode, price…"
+                                    value={listingSearch}
+                                    onChange={(e) => setListingSearch(e.target.value)}
+                                    aria-label="Search listings"
+                                    style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--text-primary)',
+                                        outline: 'none',
+                                        fontSize: '0.95rem',
+                                    }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                                <label htmlFor="listing-sort" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
+                                    Sort
+                                </label>
+                                <select
+                                    id="listing-sort"
+                                    value={listingSort}
+                                    onChange={(e) => setListingSort(e.target.value)}
+                                    className="neu-inset"
+                                    style={{
+                                        padding: '0.5rem 0.75rem',
+                                        height: '40px',
+                                        borderRadius: '8px',
+                                        color: 'var(--text-primary)',
+                                        cursor: 'pointer',
+                                        minWidth: '160px',
+                                    }}
+                                >
+                                    <option value="newest">Newest first</option>
+                                    <option value="oldest">Oldest first</option>
+                                    <option value="price-high">Price — High to Low</option>
+                                    <option value="price-low">Price — Low to High</option>
+                                    <option value="title">Title (A–Z)</option>
+                                </select>
+                            </div>
                             {selectedProperties.length > 0 && (
                                 <button
+                                    type="button"
                                     onClick={handleBulkDelete}
                                     className="neu-outset"
-                                    style={{ marginLeft: 'auto', color: '#e53935', padding: '0 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', height: '40px', fontWeight: 'bold' }}
+                                    style={{
+                                        marginLeft: 'auto',
+                                        color: '#e53935',
+                                        padding: '0 1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        height: '40px',
+                                        fontWeight: 'bold',
+                                    }}
                                 >
                                     <Trash2 size={16} /> Delete Selected ({selectedProperties.length})
                                 </button>
@@ -610,22 +686,48 @@ function AdminDashboard() {
                         <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '1.5rem', gap: '0.75rem', paddingLeft: '0.5rem' }}>
                             <div
                                 onClick={handleToggleSelectAll}
-                                className={properties.length > 0 && selectedProperties.length === properties.length ? 'neu-inset' : 'neu-outset'}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => e.key === 'Enter' && handleToggleSelectAll()}
+                                className={
+                                    filteredSortedProperties.length > 0 &&
+                                    filteredSortedProperties.every((p) => selectedProperties.includes(p._id))
+                                        ? 'neu-inset'
+                                        : 'neu-outset'
+                                }
                                 style={{
-                                    width: '32px', height: '32px',
+                                    width: '32px',
+                                    height: '32px',
                                     borderRadius: '8px',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    color: (properties.length > 0 && selectedProperties.length === properties.length) ? 'var(--accent)' : 'var(--text-secondary)'
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: filteredSortedProperties.length === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: filteredSortedProperties.length === 0 ? 0.45 : 1,
+                                    color:
+                                        filteredSortedProperties.length > 0 &&
+                                        filteredSortedProperties.every((p) => selectedProperties.includes(p._id))
+                                            ? 'var(--accent)'
+                                            : 'var(--text-secondary)',
                                 }}
                             >
                                 <CheckCircle size={18} />
                             </div>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500 }}>Select All Listings</span>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500 }}>
+                                Select all visible
+                                {listingSearch.trim() ? ` (${filteredSortedProperties.length})` : ''}
+                            </span>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {properties.map(property => {
+                            {filteredSortedProperties.length === 0 ? (
+                                <div className="neu-outset" style={{ padding: '2.5rem', textAlign: 'center', borderRadius: '12px', color: 'var(--text-secondary)' }}>
+                                    {properties.length === 0
+                                        ? 'No listings yet.'
+                                        : 'No listings match your search. Try different keywords or clear the filter.'}
+                                </div>
+                            ) : null}
+                            {filteredSortedProperties.map(property => {
                                 const isSelected = selectedProperties.includes(property._id);
                                 return (
                                     <div
@@ -658,7 +760,7 @@ function AdminDashboard() {
                                         <div style={{ width: '120px', height: '80px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, marginRight: '1.5rem', background: 'var(--bg-secondary)', position: 'relative' }}>
                                             {property.image ? (
                                                 <img
-                                                    src={property.image.startsWith('http') ? property.image : `http://localhost:5000/uploads/${property.image}`}
+                                                    src={uploadUrl(property.image)}
                                                     alt={property.title}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 />

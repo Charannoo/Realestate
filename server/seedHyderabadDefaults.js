@@ -4,7 +4,8 @@
  *
  *   npm run seed:hyderabad
  *
- * Requires sql/migrate_hyderabad_geo_feed.sql (includes image_credit) on the Supabase project.
+ * Requires sql/migrate_hyderabad_geo_feed.sql (includes image_credit) and sql/add_properties_promoted.sql
+ * when using paid “featured” placements.
  */
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const supabase = require('./config/supabase');
@@ -27,6 +28,9 @@ const COMMONS = {
     Shankarpally: `${T}/5/55/Sunrise_on_hussain_sagar_lake_hyderabad.jpg/1024px-Sunrise_on_hussain_sagar_lake_hyderabad.jpg`,
     HitecCity: `${T}/1/14/Hussain_Sagar_lake%2C_Hyderabad.jpg/1280px-Hussain_Sagar_lake%2C_Hyderabad.jpg`,
     Uppal: `${T}/8/8c/Tank_Bund%2C_Hyderabad.jpg/1280px-Tank_Bund%2C_Hyderabad.jpg`,
+    /** Aliases used by defaults rows */
+    GachibowliFlyover: `${T}/d/de/Gachibowli_flyover.jpg/1280px-Gachibowli_flyover.jpg`,
+    TCSGachibowli: `${T}/0/00/TCS_synergy_park.jpg/1280px-TCS_synergy_park.jpg`,
 };
 
 const CREDIT = {
@@ -58,6 +62,7 @@ const defaults = [
         longitude: 78.4074,
         image: COMMONS.BanjaraHills,
         image_credit: CREDIT.banjara,
+        promoted: true,
     },
     {
         external_id: 'urbanova-default-hyd-002',
@@ -70,6 +75,7 @@ const defaults = [
         longitude: 78.4468,
         image: COMMONS.BanjaraHills,
         image_credit: CREDIT.banjara,
+        promoted: true,
     },
     {
         external_id: 'urbanova-default-hyd-003',
@@ -94,6 +100,7 @@ const defaults = [
         longitude: 78.3487,
         image: COMMONS.GachibowliFlyover,
         image_credit: CREDIT.flyover,
+        promoted: true,
     },
     {
         external_id: 'urbanova-default-hyd-005',
@@ -130,30 +137,36 @@ const defaults = [
         longitude: 78.4978,
         image: COMMONS.Secunderabad,
         image_credit: CREDIT.secunderabad,
+        promoted: true,
     },
     {
         external_id: 'urbanova-default-hyd-008',
         title: 'High-Rise 2BHK — Kokapet / Financial District',
         location: 'Kokapet, Hyderabad, Telangana',
-        description: 'Tower apartment with concierge, pool deck, lake-view balconies. Suitable for EMI-friendly luxury buyers.',
+        description:
+            'Tower apartment with concierge, pool deck, lake-view balconies. Suitable for EMI-friendly luxury buyers.',
         price: 9350000,
         pincode: '500075',
         latitude: 17.4042,
         longitude: 78.3561,
         image: COMMONS.TCSGachibowli,
         image_credit: CREDIT.tcs,
+        rera_registered: true,
+        promoted: true,
     },
     {
         external_id: 'urbanova-default-hyd-009',
         title: 'Residential Plot — Tellapur Growth Corridor',
         location: 'Tellapur, Hyderabad, Telangana',
-        description: 'Corner plot in evolving residential belt between ORR and IT hubs. Boundary wall-ready; Vaastu-friendly orientation.',
+        description:
+            'Corner plot in evolving residential belt between ORR and IT hubs. Boundary wall-ready; Vaastu-friendly orientation.',
         price: 6700000,
         pincode: '500086',
         latitude: 17.5206,
         longitude: 78.2975,
         image: COMMONS.Tellapur,
         image_credit: CREDIT.tellapur,
+        rera_registered: true,
     },
     {
         external_id: 'urbanova-default-hyd-010',
@@ -195,19 +208,22 @@ const defaults = [
         external_id: 'urbanova-default-hyd-013',
         title: 'Sky Penthouse — HITEC City',
         location: 'HITEC City, Hyderabad, Telangana',
-        description: 'Duplex penthouse with private terraces, automation-ready wiring, concierge and sky lounge amenities.',
+        description:
+            'Duplex penthouse with private terraces, automation-ready wiring, concierge and sky lounge amenities.',
         price: 68500000,
         pincode: '500081',
         latitude: 17.4487,
         longitude: 78.381,
         image: COMMONS.TCSGachibowli,
         image_credit: CREDIT.tcs,
+        promoted: true,
     },
     {
         external_id: 'urbanova-default-hyd-014',
         title: '3BHK New Launch — Uppal ORR Knot',
         location: 'Uppal, Hyderabad, Telangana',
-        description: 'Under-construction tower with skyline deck, co-working nook, indoor games and EV-ready parking slots.',
+        description:
+            'Under-construction tower with skyline deck, co-working nook, indoor games and EV-ready parking slots.',
         price: 7200000,
         pincode: '500039',
         latitude: 17.4004,
@@ -220,21 +236,33 @@ const defaults = [
     source: 'seed_hyderabad',
     views: 0,
     user_id: null,
+    rera_registered: r.rera_registered === true,
+    promoted: r.promoted === true,
 }));
 
 async function upsertChunk(part) {
-    let { error } = await supabase.from('properties').upsert(part, { onConflict: 'external_id' }).select('id');
-    if (
-        error &&
-        (/image_credit|schema cache|PGRST204/i.test(String(error.message || '')) ||
-            error.code === 'PGRST204')
-    ) {
+    let payload = part;
+    let { error } = await supabase.from('properties').upsert(payload, { onConflict: 'external_id' }).select('id');
+
+    let detail = String(error?.message || error?.hint || '');
+
+    if (error && /image_credit/i.test(detail)) {
         console.warn(
-            '[seed:hyderabad] image_credit column missing — run sql/migrate_hyderabad_geo_feed.sql; upserting images only this run.'
+            '[seed:hyderabad] image_credit unsupported — retrying without image_credit (run sql/migrate_hyderabad_geo_feed.sql).'
         );
-        const stripped = part.map(({ image_credit: _c, ...rest }) => rest);
-        ({ error } = await supabase.from('properties').upsert(stripped, { onConflict: 'external_id' }).select('id'));
+        payload = part.map(({ image_credit: _c, ...rest }) => rest);
+        ({ error } = await supabase.from('properties').upsert(payload, { onConflict: 'external_id' }).select('id'));
+        detail = String(error?.message || error?.hint || '');
     }
+
+    if (error && /promoted/i.test(detail)) {
+        console.warn(
+            '[seed:hyderabad] promoted unsupported — retrying without promoted (run sql/add_properties_promoted.sql).'
+        );
+        payload = payload.map(({ promoted: _p, ...rest }) => rest);
+        ({ error } = await supabase.from('properties').upsert(payload, { onConflict: 'external_id' }).select('id'));
+    }
+
     if (error) throw error;
 }
 
@@ -256,8 +284,10 @@ main().catch((e) => {
             '\nSupabase RLS blocked the insert. Run sql/bootstrap_estate_dev.sql or sql/supabase_rls_anon_dev.sql — or set SUPABASE_SERVICE_ROLE_KEY.\n'
         );
     }
-    if (/image_credit|column .* does not exist|PGRST204/i.test(String(e?.message || ''))) {
-        console.error('\n(Optional) Run sql/migrate_hyderabad_geo_feed.sql to store attribution text.\n');
+    if (/image_credit|column .* does not exist|PGRST204|promoted/i.test(String(e?.message || ''))) {
+        console.error(
+            '\n(Optional) sql/migrate_hyderabad_geo_feed.sql (image attribution) · sql/add_properties_promoted.sql (featured placements).\n'
+        );
     }
     console.error(e);
     process.exit(1);

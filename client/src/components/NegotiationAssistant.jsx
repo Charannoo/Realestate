@@ -67,11 +67,11 @@ function NegotiationAssistant({ property, isOpen, onClose }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ 
-                            background: 'linear-gradient(135deg, #c9a227 0%, #e6c84d 100%)',
+                            background: 'linear-gradient(135deg, #f2ca50 0%, #d4af37 100%)',
                             padding: '0.75rem', borderRadius: '12px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}>
-                            <Target size={24} color="#000" />
+                            <Target size={24} color="#003732" />
                         </div>
                         <div>
                             <h3 style={{ margin: 0, fontSize: '1.25rem', textAlign: 'left' }}>AI Negotiation Assistant</h3>

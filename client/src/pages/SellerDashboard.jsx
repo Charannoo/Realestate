@@ -1,215 +1,255 @@
 import { useState, useEffect } from 'react';
-import { Building2, Eye, Plus, LayoutGrid } from 'lucide-react';
+import { Eye, Plus } from 'lucide-react';
 import '../index.css';
 import { Link, useNavigate } from 'react-router-dom';
+import { uploadUrl } from '../utils/uploadUrl.js';
 
 function SellerDashboard() {
-    const navigate = useNavigate();
-    const [stats, setStats] = useState({
-        totalListings: 0,
-        totalViews: 0,
-        properties: []
-    });
-    const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalListings: 0,
+    totalViews: 0,
+    properties: [],
+  });
+  const [loading, setLoading] = useState(true);
 
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
-    const [verifyFile, setVerifyFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user')) || {};
+    } catch {
+      return {};
+    }
+  });
+  const [verifyFile, setVerifyFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const token = user?.token;
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = user?.token;
 
-                // Fetch latest user info
-                const userRes = await fetch('/api/users/me', {
-                    headers: { 'token': `Bearer ${token}` }
-                });
-                if (userRes.ok) {
-                    const userData = await userRes.json();
-                    const updatedUser = { ...user, ...userData };
-                    setUser(updatedUser);
-                    localStorage.setItem('user', JSON.stringify(updatedUser));
-                }
-
-                // API endpoint: /api/properties/user/stats
-                const res = await fetch('/api/properties/user/stats', {
-                    headers: { 'token': `Bearer ${token}` }
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setStats(data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch seller stats", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `user` merges in-effect; full `user` dep would loop
-    }, [user?.token]);
-
-    const handleVerificationSubmit = async (e) => {
-        e.preventDefault();
-        if (!verifyFile) return;
-        setUploading(true);
-        const formData = new FormData();
-        formData.append('document', verifyFile);
-
-        try {
-            const res = await fetch('/api/users/verify', {
-                method: 'POST',
-                headers: { 'token': `Bearer ${user.token}` },
-                body: formData
-            });
-            if (res.ok) {
-                const updatedUser = await res.json();
-                const newUser = { ...user, ...updatedUser };
-                setUser(newUser);
-                localStorage.setItem('user', JSON.stringify(newUser));
-                setVerifyFile(null);
-            }
-        } catch (err) {
-            console.error("Verification upload failed", err);
-        } finally {
-            setUploading(false);
+        const userRes = await fetch('/api/users/me', {
+          headers: { token: `Bearer ${token}` },
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          const updatedUser = { ...user, ...userData };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
         }
+
+        const res = await fetch('/api/properties/user/stats', {
+          headers: { token: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch seller stats', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (loading) return <div className="container" style={{ paddingTop: '100px', textAlign: 'center' }}>Loading Dashboard...</div>;
+    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `user` merges in-effect; full `user` dep would loop
+  }, [user?.token]);
 
+  const handleVerificationSubmit = async (e) => {
+    e.preventDefault();
+    if (!verifyFile) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('document', verifyFile);
+
+    try {
+      const res = await fetch('/api/users/verify', {
+        method: 'POST',
+        headers: { token: `Bearer ${user.token}` },
+        body: formData,
+      });
+      if (res.ok) {
+        const updatedUser = await res.json();
+        const newUser = { ...user, ...updatedUser };
+        setUser(newUser);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        setVerifyFile(null);
+      }
+    } catch (err) {
+      console.error('Verification upload failed', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (loading) {
     return (
-        <div className="container" style={{ paddingTop: '100px', paddingBottom: '50px' }}>
-            <div className="section-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <h2>Seller Dashboard</h2>
-                    <p>Overview of your listings and performance.</p>
-                </div>
-                <Link to="/add">
-                    <button className="cta-button" style={{ fontSize: '0.9rem', padding: '0.6rem 1.2rem' }}>
-                        <Plus size={18} /> List New Property
-                    </button>
-                </Link>
-            </div>
-
-            {/* Verification Status */}
-            <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Account Verification</h3>
-                {user.verificationStatus === 'verified' && (
-                    <div style={{ color: '#32cd32', fontWeight: 'bold' }}>✓ You are a Verified Seller.</div>
-                )}
-                {user.verificationStatus === 'pending' && (
-                    <div style={{ color: '#ffa500', fontWeight: 'bold' }}>⏳ Your verification document is pending review by an administrator.</div>
-                )}
-                {(!user.verificationStatus || user.verificationStatus === 'unverified' || user.verificationStatus === 'rejected') && (
-                    <div>
-                        {user.verificationStatus === 'rejected' && <p style={{ color: '#ff6b6b' }}>Your previous verification was rejected. Please re-upload a valid ID or ownership document.</p>}
-                        <p style={{ color: 'var(--text-secondary)' }}>Please upload a government-issued ID or property ownership document to become verified.</p>
-                        <form onSubmit={handleVerificationSubmit} style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem' }}>
-                            <input type="file" onChange={(e) => setVerifyFile(e.target.files[0])} required />
-                            <button type="submit" disabled={uploading} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
-                                {uploading ? 'Uploading...' : 'Submit Document'}
-                            </button>
-                        </form>
-                    </div>
-                )}
-            </div>
-
-            {/* Stats Cards */}
-            <div className="stats-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '3rem'
-            }}>
-                <div className="stat-card" style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                        <span>Total Listings</span>
-                        <LayoutGrid size={20} style={{ color: 'var(--accent)' }} />
-                    </div>
-                    <h3 style={{ fontSize: '2rem', margin: 0, color: 'var(--text-primary)' }}>{stats.totalListings}</h3>
-                </div>
-
-                <div className="stat-card" style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                        <span>Total Views</span>
-                        <Eye size={20} style={{ color: 'var(--accent)' }} />
-                    </div>
-                    <h3 style={{ fontSize: '2rem', margin: 0, color: 'var(--text-primary)' }}>{stats.totalViews}</h3>
-                </div>
-            </div>
-
-            <style>{`
-                .listing-row {
-                    cursor: pointer;
-                    transition: background-color 0.2s ease;
-                }
-                .listing-row:hover {
-                    background-color: rgba(255, 255, 255, 0.03);
-                }
-            `}</style>
-
-            {/* Listings Table */}
-            <div className="listings-section">
-                <h3 style={{ marginBottom: '1.5rem' }}>My Listings</h3>
-
-                <div className="table-container" style={{ overflowX: 'auto', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Property</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Price</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Location</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Views</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Date Posted</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {stats.properties.length > 0 ? (
-                                stats.properties.map(property => (
-                                    <tr
-                                        key={property._id}
-                                        className="listing-row"
-                                        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-                                        onClick={() => navigate(`/property/${property._id}`)}
-                                    >
-                                        <td style={{ padding: '1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ width: '50px', height: '50px', borderRadius: '6px', overflow: 'hidden', background: '#333' }}>
-                                                    {property.image && <img src={property.image.startsWith('http') ? property.image : `http://localhost:5000/uploads/${property.image}`} alt={property.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                                                </div>
-                                                <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{property.title}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1rem' }}>₹{property.price.toLocaleString('en-IN')}</td>
-                                        <td style={{ padding: '1rem' }}>{property.location}</td>
-                                        <td style={{ padding: '1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <Eye size={16} style={{ color: 'var(--text-secondary)' }} />
-                                                {property.views || 0}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-                                            {new Date(property.createdAt).toLocaleDateString()}
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                        You haven't listed any properties yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+      <div className="max-w-max-width mx-auto px-margin py-24 text-center text-on-surface-variant font-body-md">
+        Loading dashboard…
+      </div>
     );
+  }
+
+  const displayName = user.username || user.name || 'Seller';
+
+  return (
+    <main className="flex-grow w-full max-w-max-width mx-auto px-margin py-xl flex flex-col gap-xl pb-24">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-md">
+        <div>
+          <h1 className="font-display-xl text-display-xl text-on-background mb-xs">Welcome back, {displayName}</h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant">
+            Here is an overview of your property portfolio in Hyderabad.
+          </p>
+        </div>
+        <Link
+          to="/add"
+          className="bg-primary text-on-primary px-6 py-3 rounded-lg font-label-sm flex items-center gap-sm hover:bg-primary-fixed-dim transition-colors shadow-primary-glow"
+        >
+          <Plus size={18} />
+          List New Property
+        </Link>
+      </header>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+        {[
+          {
+            label: 'Total Listings',
+            value: stats.totalListings,
+            sub: `${stats.properties?.length || 0} live`,
+            icon: 'real_estate_agent',
+          },
+          {
+            label: 'Total Views',
+            value: stats.totalViews?.toLocaleString?.('en-IN') ?? stats.totalViews,
+            sub: 'Portfolio reach',
+            icon: 'visibility',
+          },
+          {
+            label: 'Active Inquiries',
+            value: '—',
+            sub: 'Coming soon',
+            icon: 'chat_bubble',
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className="bg-surface-container-low/50 backdrop-blur-[12px] border border-outline-variant/30 rounded-xl p-lg relative overflow-hidden group"
+          >
+            <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity duration-300 pointer-events-none">
+              <span className="material-symbols-outlined text-[100px] text-primary">{card.icon}</span>
+            </div>
+            <div className="relative z-10">
+              <p className="font-label-sm text-label-sm text-on-surface-variant mb-sm uppercase tracking-wider">{card.label}</p>
+              <p className="font-display-xl text-display-xl text-primary">{card.value}</p>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-sm">{card.sub}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <div className="glass-panel rounded-xl p-lg border border-outline-variant/30">
+        <h3 className="font-headline-md text-headline-md text-on-background mt-0 mb-md">Account Verification</h3>
+        {user.verificationStatus === 'verified' && (
+          <div className="text-primary font-label-sm font-semibold flex items-center gap-sm">
+            <span className="material-symbols-outlined text-[20px]">verified</span> You are a verified seller.
+          </div>
+        )}
+        {user.verificationStatus === 'pending' && (
+          <div className="text-tertiary font-body-md">Your verification document is pending admin review.</div>
+        )}
+        {(!user.verificationStatus || user.verificationStatus === 'unverified' || user.verificationStatus === 'rejected') && (
+          <div>
+            {user.verificationStatus === 'rejected' && (
+              <p className="text-error font-body-md mb-md">Previous verification was rejected. Please upload a valid document.</p>
+            )}
+            <p className="text-on-surface-variant font-body-md mb-md">
+              Upload a government ID or ownership document to unlock verified seller status.
+            </p>
+            <form onSubmit={handleVerificationSubmit} className="flex flex-wrap gap-md items-center">
+              <input type="file" onChange={(e) => setVerifyFile(e.target.files?.[0])} required className="text-sm text-on-surface-variant" />
+              <button
+                type="submit"
+                disabled={uploading}
+                className="bg-primary text-on-primary font-label-sm px-md py-sm rounded-lg hover:bg-primary-fixed disabled:opacity-50"
+              >
+                {uploading ? 'Uploading…' : 'Submit Document'}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      <section className="flex flex-col gap-md">
+        <div className="flex justify-between items-center mb-md flex-wrap gap-md">
+          <h2 className="font-headline-md text-headline-md text-on-background m-0">Your Properties</h2>
+          <button
+            type="button"
+            onClick={() => navigate('/properties')}
+            className="font-label-sm text-primary hover:text-primary-fixed-dim transition-colors flex items-center gap-xs"
+          >
+            Browse market <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </button>
+        </div>
+
+        <div className="overflow-x-auto bg-surface-container-low/40 rounded-xl border border-outline-variant/30">
+          <table className="w-full border-collapse min-w-[600px]">
+            <thead>
+              <tr className="border-b border-white/10 text-left">
+                <th className="p-md font-label-sm text-on-surface-variant">Property</th>
+                <th className="p-md font-label-sm text-on-surface-variant">Price</th>
+                <th className="p-md font-label-sm text-on-surface-variant">Location</th>
+                <th className="p-md font-label-sm text-on-surface-variant">Views</th>
+                <th className="p-md font-label-sm text-on-surface-variant">Posted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.properties.length > 0 ? (
+                stats.properties.map((property) => (
+                  <tr
+                    key={property._id}
+                    className="border-b border-white/5 cursor-pointer hover:bg-white/[0.03] transition-colors"
+                    onClick={() => navigate(`/property/${property._id}`)}
+                  >
+                    <td className="p-md">
+                      <div className="flex items-center gap-md">
+                        <div className="w-[50px] h-[50px] rounded-md overflow-hidden bg-surface-variant shrink-0">
+                          {property.image && (
+                            <img
+                              src={uploadUrl(property.image)}
+                              alt={property.title}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <span className="font-medium text-on-background">{property.title}</span>
+                      </div>
+                    </td>
+                    <td className="p-md text-on-background">₹{Number(property.price).toLocaleString('en-IN')}</td>
+                    <td className="p-md text-on-surface-variant">{property.location}</td>
+                    <td className="p-md">
+                      <div className="flex items-center gap-sm text-on-surface-variant">
+                        <Eye size={16} />
+                        {property.views || 0}
+                      </div>
+                    </td>
+                    <td className="p-md text-on-surface-variant">{new Date(property.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-xl text-center text-on-surface-variant font-body-md">
+                    You haven&apos;t listed any properties yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
 }
 
 export default SellerDashboard;

@@ -1,387 +1,492 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, ArrowLeft, Mail, Calendar, Trash2, X, CheckCircle, Share2, Heart, Calculator, Target, Home } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MapPin, ArrowLeft, X, Share2, Heart, Calculator, Home, Trash2 } from 'lucide-react';
 import Toast from '../components/Toast';
 import MortgageCalculator from '../components/MortgageCalculator';
 import NegotiationAssistant from '../components/NegotiationAssistant';
 import LiveabilityScore from '../components/LiveabilityScore';
 import PropertyDualMap from '../components/PropertyDualMap.jsx';
+import { listingMentionsRera } from '../utils/listingRera.js';
+import FloorPlan2D from '../components/FloorPlan2D.jsx';
+import { secondaryGalleryUrls } from '../utils/listingGalleryExtras.js';
+import { effectiveListingBhk } from '../utils/listingBhk.js';
+import { assignUniqueCatalogHeroes, resolveListingHeroUrl } from '../utils/listingHeroImage.js';
 
-/** OSM bbox: Greater Hyderabad corridor when listing has no stored coordinates */
 const HYDERABAD_REGION_EMBED =
-    'https://www.openstreetmap.org/export/embed.html?bbox=78.20%2C17.26%2C78.72%2C17.62&layer=mapnik';
+  'https://www.openstreetmap.org/export/embed.html?bbox=78.20%2C17.26%2C78.72%2C17.62&layer=mapnik';
+
+const PROXIMITY_MAP_IMG =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCj0cGUsUFzPV-nmxozvUTzAxFMkWRlWN4vqhW4Kb-teOfQP8Rz2KvL75bHXRs-G7ghiU1gDHvrS7xqsAxUSML_8N1AWKezAJ66X4a83rXBNQexPpH09jPpCGb4N5iPURPEeUbuPpnLWZtccqHhjIHEjjh8jyjN5NRKSSI17SZzxXK0eDL6cQ852tWZE6W_O2uEvD-Zn8pmKzEsKmPoDPNnyXZhkLJhGl_i1-1LdtxgsoC1eV2P5oe7TB7H_Ejyyl2SKq023YmonYU';
 
 function toCoordNumber(value) {
-    if (value == null || value === '') return null;
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    const n = parseFloat(value);
-    return Number.isFinite(n) ? n : null;
+  if (value == null || value === '') return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : null;
 }
+
+function formatListingPrice(price) {
+  const n = Number(price);
+  if (!Number.isFinite(n)) return '—';
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(n % 10000000 === 0 ? 0 : 1)} Cr`;
+  return `₹${n.toLocaleString('en-IN')}`;
+}
+
 function ListingDetails({ user }) {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [property, setProperty] = useState(null);
-    const [toast, setToast] = useState(null);
-    const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-    const [isNegotiationOpen, setIsNegotiationOpen] = useState(false);
-    const [isLiveabilityOpen, setIsLiveabilityOpen] = useState(false);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [property, setProperty] = useState(null);
+  const [heroCatalogMap, setHeroCatalogMap] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isNegotiationOpen, setIsNegotiationOpen] = useState(false);
+  const [isLiveabilityOpen, setIsLiveabilityOpen] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+  const [scheduleSuccess, setScheduleSuccess] = useState(false);
 
-    // Modal States
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showContactModal, setShowContactModal] = useState(false);
-    const [showScheduleModal, setShowScheduleModal] = useState(false);
+  useEffect(() => {
+    fetch(`/api/properties/${id}`)
+      .then((res) => res.json())
+      .then((data) => setProperty(data))
+      .catch((err) => console.error(err));
+  }, [id]);
 
-    // Success States
-    const [contactSuccess, setContactSuccess] = useState(false);
-    const [scheduleSuccess, setScheduleSuccess] = useState(false);
+  useEffect(() => {
+    fetch('/api/properties')
+      .then((res) => res.json())
+      .then((data) => {
+        setHeroCatalogMap(assignUniqueCatalogHeroes(Array.isArray(data) ? data : []));
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
-    useEffect(() => {
-        fetch(`/api/properties/${id}`)
-            .then(res => res.json())
-            .then(data => setProperty(data))
-            .catch(err => console.error(err));
-    }, [id]);
-
-    const confirmDelete = async () => {
-        try {
-            const res = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
-            if (res.ok) navigate('/');
-            else setToast({ message: 'Failed to delete property.', type: 'error' });
-        } catch (err) {
-            console.error(err);
-            setToast({ message: 'Error deleting property.', type: 'error' });
-        }
-    };
-
-    const handleContactSubmit = (e) => {
-        e.preventDefault();
-        setContactSuccess(true);
+  const confirmDelete = async () => {
+    try {
+      const res = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
+      if (res.ok) navigate('/');
+      else setToast({ message: 'Failed to delete property.', type: 'error' });
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Error deleting property.', type: 'error' });
     }
+  };
 
-    const handleScheduleSubmit = (e) => {
-        e.preventDefault();
-        setScheduleSuccess(true);
-    }
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    setContactSuccess(true);
+  };
 
-    const getImageUrl = (img) => {
-        if (!img) return null;
-        if (img.startsWith('http')) return img;
-        return `http://localhost:5000/uploads/${img}`;
-    };
+  const handleScheduleSubmit = (e) => {
+    e.preventDefault();
+    setScheduleSuccess(true);
+  };
 
-    const HERO_FALLBACK_IMAGE =
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Charminar%2C_Hyderabad.jpg/1280px-Charminar%2C_Hyderabad.jpg';
+  const HERO_FALLBACK_IMAGE =
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Charminar%2C_Hyderabad.jpg/1280px-Charminar%2C_Hyderabad.jpg';
 
-    // Safety check for critical data
-    if (!property || !property.title) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>Loading or Error...</div>;
-
-    const mapLat = toCoordNumber(property.latitude);
-    const mapLng = toCoordNumber(property.longitude);
-    const addressLine = [property.location, property.pincode].filter(Boolean).join(', ');
-    const googleMapsAddressUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLine)}`;
-    const googleMapsPinUrl =
-        mapLat != null && mapLng != null
-            ? `https://www.google.com/maps/search/?api=1&query=${mapLat}%2C${mapLng}`
-            : googleMapsAddressUrl;
-
-    // Debugging ownership
-    const isOwner = (() => {
-        // Strictly check if the logged-in user is the owner
-        if (!user || !property) return false;
-
-        // Note: We removed global admin access from this public view
-        if (user.role === 'admin') return true; // Legacy fallback if admin logs in via main portal
-        if (!property.user) return false;
-
-        const propertyUserId = typeof property.user === 'object' ? property.user._id : property.user;
-        const currentUserId = user._id;
-
-        return String(propertyUserId) === String(currentUserId);
-    })();
-
+  if (!property || !property.title) {
     return (
-        <div style={{ paddingBottom: '4rem' }}>
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
-
-            {/* Cinematic Hero Section */}
-            <div style={{ position: 'relative', height: '60vh', width: '100%', overflow: 'hidden' }}>
-                <img
-                    src={getImageUrl(property.image) || HERO_FALLBACK_IMAGE}
-                    alt={property.title}
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                        e.currentTarget.src = HERO_FALLBACK_IMAGE;
-                    }}
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        filter: 'brightness(0.7)',
-                    }}
-                />
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), #050505)'
-                }}></div>
-
-                <div className="container" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: '4rem' }}>
-                    <Link to="/" style={{ position: 'absolute', top: '2rem', left: '2rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#fff', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '100px', backdropFilter: 'blur(5px)' }}>
-                        <ArrowLeft size={16} /> Back
-                    </Link>
-
-                    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-                        <h1 style={{ fontSize: '3.5rem', margin: '0 0 0.5rem 0', fontWeight: '800', letterSpacing: '-0.02em', textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>{property.title}</h1>
-                        <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', color: '#dedede' }}>
-                            <MapPin size={20} color="var(--accent)" /> {property.location}
-                        </p>
-                    </motion.div>
-                </div>
-            </div>
-
-            <div className="container" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '4rem', marginTop: '-3rem', position: 'relative', zIndex: 10 }}>
-                {/* Left Column: Details */}
-                <div>
-                    <div style={{ background: '#111', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '3rem' }}>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>About this property</h2>
-                        <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1rem', whiteSpace: 'pre-line' }}>{property.description}</p>
-                        {property.image_credit ? (
-                            <p
-                                role="note"
-                                style={{
-                                    marginTop: '1.25rem',
-                                    paddingTop: '1rem',
-                                    borderTop: '1px solid var(--border)',
-                                    fontSize: '0.8rem',
-                                    lineHeight: 1.55,
-                                    color: 'var(--text-secondary)',
-                                }}
-                            >
-                                {property.image_credit}
-                            </p>
-                        ) : null}
-                    </div>
-
-                    {/* Embedded map — OSM marker when lat/lng exist; metro overview fallback */}
-                    <div style={{ background: '#111', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.25rem' }}>Location</h2>
-                        {mapLat != null && mapLng != null ? (
-                            <>
-                                <PropertyDualMap
-                                    lat={mapLat}
-                                    lng={mapLng}
-                                    title={property.title}
-                                    addressLabel={`${addressLine}\nApprox. ${mapLat.toFixed(5)}°N · ${mapLng.toFixed(5)}°E`}
-                                    hideLayerSwitcher
-                                    height={360}
-                                />
-                                <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
-                                    <a
-                                        href={googleMapsPinUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '0.35rem',
-                                            background: '#fff',
-                                            color: '#000',
-                                            padding: '0.6rem 1.1rem',
-                                            fontWeight: 600,
-                                            textDecoration: 'none',
-                                            borderRadius: '8px',
-                                            fontSize: '0.9rem',
-                                        }}
-                                    >
-                                        <MapPin size={17} aria-hidden /> Open in Google Maps
-                                    </a>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.5 }}>
-                                    No GPS pin saved yet for this listing — map shows Greater Hyderabad context. Use the button below for navigation to the full address.
-                                </p>
-                                <iframe
-                                    title="Greater Hyderabad overview"
-                                    src={HYDERABAD_REGION_EMBED}
-                                    width="100%"
-                                    height={360}
-                                    style={{ border: 0, borderRadius: '12px' }}
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer-when-downgrade"
-                                />
-                                <p style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                                    © <a href="https://openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>OpenStreetMap</a>
-                                </p>
-                                <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
-                                    <a
-                                        href={googleMapsAddressUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '0.35rem',
-                                            background: '#fff',
-                                            color: '#000',
-                                            padding: '0.6rem 1.1rem',
-                                            fontWeight: 600,
-                                            textDecoration: 'none',
-                                            borderRadius: '8px',
-                                            fontSize: '0.9rem',
-                                        }}
-                                    >
-                                        <MapPin size={17} aria-hidden /> Open address in Google Maps
-                                    </a>
-                                </div>
-                                <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.95rem', whiteSpace: 'pre-line' }}>
-                                    {addressLine}
-                                </p>
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                {/* Right Column: Sticky Sidebar */}
-                <div style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
-                    <div style={{
-                        background: 'rgba(20, 20, 20, 0.6)',
-                        backdropFilter: 'blur(20px)',
-                        padding: '2rem', borderRadius: '16px',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
-                    }}>
-                        <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.1em' }}>Price</p>
-                        <div style={{ fontSize: '3rem', color: '#fff', fontWeight: '700', marginBottom: '2rem', letterSpacing: '-0.02em' }}>
-                            ₹{Number(property.price).toLocaleString('en-IN')}
-                        </div>
-
-                        <div style={{ display: 'grid', gap: '1rem' }}>
-                            <button onClick={() => setShowScheduleModal(true)} style={{ width: '100%', padding: '1rem', fontSize: '1.05rem' }}>
-                                Schedule Viewing
-                            </button>
-                            <button onClick={() => setShowContactModal(true)} style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}>
-                                Contact Agent / Seller
-                            </button>
-                            {user && user.role === 'buyer' && (
-                                <>
-                                    <button
-                                        onClick={() => setIsNegotiationOpen(true)}
-                                        style={{ width: '100%', background: 'rgba(102, 126, 234, 0.1)', border: '1px solid rgba(102, 126, 234, 0.3)', color: '#667eea', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                    >
-                                        <Target size={18} /> AI Negotiation
-                                    </button>
-                                    <button
-                                        onClick={() => setIsLiveabilityOpen(true)}
-                                        style={{ width: '100%', background: 'rgba(56, 239, 125, 0.1)', border: '1px solid rgba(56, 239, 125, 0.3)', color: '#38ef7d', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                    >
-                                        <Home size={18} /> Liveability Score
-                                    </button>
-                                </>
-                            )}
-                            <button
-                                onClick={() => setIsCalculatorOpen(true)}
-                                style={{ width: '100%', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                            >
-                                <Calculator size={18} /> Estimate Payments
-                            </button>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                            <button style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-secondary)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: 'none' }}>
-                                <Share2 size={18} /> Share
-                            </button>
-                            <button style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-secondary)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: 'none' }}>
-                                <Heart size={18} /> Save
-                            </button>
-                        </div>
-
-                        {isOwner && (
-                            <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <button
-                                    onClick={() => navigate('/add', { state: { property } })}
-                                    style={{ width: '100%', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: '0.95rem', boxShadow: 'none' }}
-                                >
-                                    Edit Listing
-                                </button>
-                                <button onClick={() => setShowDeleteModal(true)} style={{ width: '100%', background: 'transparent', color: '#d32f2f', border: 'none', fontSize: '0.9rem', opacity: 0.7, boxShadow: 'none' }}>
-                                    Delete Listing
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Modals (Re-used styles) */}
-            {/* Delete Modal */}
-            {showDeleteModal && (
-                <div className="modal-overlay">
-                    <div className="auth-modal" style={{ maxWidth: '400px' }}>
-                        <h3>Delete Listing?</h3>
-                        <p style={{ color: '#666', marginBottom: '2rem' }}>Are you sure? This action cannot be undone.</p>
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button onClick={() => setShowDeleteModal(false)} style={{ background: 'transparent', border: '1px solid #eee', color: '#000', boxShadow: 'none' }}>Cancel</button>
-                            <button onClick={confirmDelete} style={{ background: '#d32f2f', color: '#fff', boxShadow: 'none' }}>Delete</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Contact Modal Placeholder (simplified for brevity logic remains same) */}
-            {/* Schedule Modal Placeholder */}
-            {(showContactModal || showScheduleModal) && (
-                <div className="modal-overlay">
-                    <div className="auth-modal" style={{ maxWidth: '400px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                            <h3>{showContactModal ? 'Contact Agent / Seller' : 'Schedule Viewing'}</h3>
-                            <button onClick={() => { setShowContactModal(false); setShowScheduleModal(false) }} style={{ background: 'transparent', color: '#000', padding: 0, boxShadow: 'none' }}><X /></button>
-                        </div>
-                        <p style={{ color: '#666', marginBottom: '2rem' }}>
-                            {contactSuccess || scheduleSuccess ? 'Request Sent Successfully!' : 'Enter your details below to connect with the agent or seller.'}
-                        </p>
-                        {!contactSuccess && !scheduleSuccess && (
-                            <form onSubmit={showContactModal ? handleContactSubmit : handleScheduleSubmit}>
-                                <input type="text" placeholder="Your Name" required />
-                                <input type="email" placeholder="Your Email" required />
-                                {showScheduleModal && <input type="date" required style={{ marginBottom: '1rem' }} />}
-                                <button type="submit" className="submit-btn">Send Request</button>
-                            </form>
-                        )}
-                        {(contactSuccess || scheduleSuccess) && <button onClick={() => { setShowContactModal(false); setShowScheduleModal(false) }} className="submit-btn">Close</button>}
-                    </div>
-                </div>
-            )}
-            {/* Mortgage Calculator Modal */}
-            <MortgageCalculator
-                isOpen={isCalculatorOpen}
-                onClose={() => setIsCalculatorOpen(false)}
-                price={property.price}
-            />
-            {/* AI Negotiation Assistant */}
-            <NegotiationAssistant
-                property={property}
-                isOpen={isNegotiationOpen}
-                onClose={() => setIsNegotiationOpen(false)}
-            />
-            {/* Liveability Score */}
-            <LiveabilityScore
-                property={property}
-                isOpen={isLiveabilityOpen}
-                onClose={() => setIsLiveabilityOpen(false)}
-            />
-        </div>
+      <div className="min-h-[50vh] flex items-center justify-center text-on-surface-variant font-body-md">
+        Loading…
+      </div>
     );
+  }
+
+  const mapLat = toCoordNumber(property.latitude);
+  const mapLng = toCoordNumber(property.longitude);
+  const addressLine = [property.location, property.pincode].filter(Boolean).join(', ');
+  const googleMapsAddressUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLine)}`;
+  const googleMapsPinUrl =
+    mapLat != null && mapLng != null
+      ? `https://www.google.com/maps/search/?api=1&query=${mapLat}%2C${mapLng}`
+      : googleMapsAddressUrl;
+
+  const primaryHero = heroCatalogMap?.get(property._id) ?? resolveListingHeroUrl(property);
+  const mainImg = primaryHero || HERO_FALLBACK_IMAGE;
+  const [galleryExtraA, galleryExtraB] = secondaryGalleryUrls(property, primaryHero);
+
+  const inferredBhk = effectiveListingBhk(property);
+  const sqft = Number(property.areaSqft);
+  const pricePerSqft =
+    Number.isFinite(sqft) && sqft > 0 && Number.isFinite(Number(property.price))
+      ? Math.round(Number(property.price) / sqft)
+      : null;
+
+  const isOwner = (() => {
+    if (!user || !property) return false;
+    if (user.role === 'admin') return true;
+    if (!property.user) return false;
+    const propertyUserId = typeof property.user === 'object' ? property.user._id : property.user;
+    return String(propertyUserId) === String(user._id);
+  })();
+
+  const beds =
+    property.bedrooms != null && property.bedrooms !== ''
+      ? property.bedrooms
+      : inferredBhk != null
+        ? String(inferredBhk)
+        : '—';
+  const baths =
+    property.bathrooms != null && property.bathrooms !== ''
+      ? property.bathrooms
+      : property.bedrooms != null && property.bedrooms !== ''
+        ? property.bedrooms
+        : inferredBhk != null
+          ? String(inferredBhk)
+          : '—';
+  const areaLabel = Number.isFinite(sqft) && sqft > 0 ? String(sqft) : '—';
+  const statusLabel =
+    (property.availabilityStatus || property.status || 'Ready').toString().split(' ')[0] || 'Ready';
+
+  return (
+    <div className="pb-xl bg-background">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      <div className="max-w-max-width mx-auto px-gutter md:px-margin pt-md">
+        <Link
+          to="/properties"
+          className="inline-flex items-center gap-sm text-on-surface-variant hover:text-primary font-label-sm mb-md transition-colors"
+        >
+          <ArrowLeft size={16} /> Back to search
+        </Link>
+      </div>
+
+      <main className="flex-grow w-full max-w-max-width mx-auto px-gutter md:px-margin py-lg flex flex-col gap-xl">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-sm h-auto md:h-[614px] rounded-xl overflow-hidden">
+          <div className="md:col-span-2 relative group min-h-[280px] md:min-h-0">
+            <img
+              src={mainImg}
+              alt={property.title}
+              referrerPolicy="no-referrer"
+              className="w-full h-full min-h-[280px] md:min-h-0 object-cover"
+              onError={(e) => {
+                e.currentTarget.src = HERO_FALLBACK_IMAGE;
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent flex items-end p-lg pointer-events-none">
+              {listingMentionsRera(property) ? (
+                <span className="bg-surface/60 backdrop-blur-md border border-white/10 px-md py-xs rounded-full font-label-sm text-label-sm text-primary flex items-center gap-xs pointer-events-auto">
+                  <span className="material-symbols-outlined !text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    verified
+                  </span>
+                  RERA disclosed
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="hidden md:flex flex-col gap-sm h-full">
+            <img
+              alt=""
+              src={galleryExtraA}
+              className="w-full h-1/2 object-cover rounded-tr-xl"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.src = mainImg !== galleryExtraA ? mainImg : HERO_FALLBACK_IMAGE;
+              }}
+            />
+            <img
+              alt=""
+              src={galleryExtraB}
+              className="w-full h-1/2 object-cover rounded-br-xl"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.src = mainImg !== galleryExtraB ? mainImg : HERO_FALLBACK_IMAGE;
+              }}
+            />
+          </div>
+        </section>
+
+        <section className="w-full" aria-labelledby="plan-heading">
+          <h2 id="plan-heading" className="sr-only">
+            Illustrative 2D layout
+          </h2>
+          <FloorPlan2D
+            propertyId={property._id}
+            title={property.title}
+            description={property.description}
+            bedrooms={property.bedrooms}
+            bathrooms={property.bathrooms}
+            areaSqft={property.areaSqft}
+          />
+        </section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-xl">
+          <div className="lg:col-span-2 flex flex-col gap-xl">
+            <div className="flex flex-col gap-md">
+              <div className="flex justify-between items-start gap-md flex-wrap">
+                <div>
+                  <h1 className="font-headline-lg text-headline-lg text-on-background mb-xs">{property.title}</h1>
+                  <p className="font-body-md text-body-md text-on-surface-variant flex items-center gap-xs">
+                    <span className="material-symbols-outlined !text-[18px]">location_on</span>
+                    {addressLine || property.location}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="font-headline-lg text-headline-lg text-primary">{formatListingPrice(property.price)}</div>
+                  <div className="font-label-sm text-label-sm text-on-surface-variant">
+                    {pricePerSqft != null ? `₹${pricePerSqft.toLocaleString('en-IN')} / sq.ft` : 'Price / sq.ft on request'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-sm">
+                {[
+                  { icon: 'bed', label: 'Bedrooms', val: beds },
+                  { icon: 'bathtub', label: 'Bathrooms', val: baths },
+                  { icon: 'square_foot', label: 'Sq.Ft Area', val: areaLabel },
+                  { icon: 'key', label: 'Status', val: statusLabel },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="glass-panel p-md rounded-lg flex flex-col items-center justify-center text-center"
+                  >
+                    <span className="material-symbols-outlined text-primary mb-xs" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      {s.icon}
+                    </span>
+                    <span className="font-headline-md text-headline-md text-on-background">{s.val}</span>
+                    <span className="font-label-sm text-label-sm text-on-surface-variant">{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-panel p-lg rounded-xl">
+              <h2 className="font-headline-md text-headline-md text-on-background mb-md">About Property</h2>
+              <p className="font-body-md text-body-md text-on-surface-variant whitespace-pre-line">{property.description}</p>
+              {property.image_credit ? (
+                <p role="note" className="mt-md pt-md border-t border-white/10 text-xs text-on-surface-variant leading-relaxed">
+                  {property.image_credit}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="glass-panel p-lg rounded-xl flex flex-col gap-md">
+              <h2 className="font-headline-md text-headline-md text-on-background">Proximity &amp; Location</h2>
+              <div className="relative h-64 rounded-lg overflow-hidden border border-outline-variant/30">
+                {mapLat != null && mapLng != null ? (
+                  <PropertyDualMap
+                    lat={mapLat}
+                    lng={mapLng}
+                    title={property.title}
+                    addressLabel={`${addressLine}\nApprox. ${mapLat.toFixed(5)}°N · ${mapLng.toFixed(5)}°E`}
+                    hideLayerSwitcher
+                    height={256}
+                  />
+                ) : (
+                  <>
+                    <img alt="" src={PROXIMITY_MAP_IMG} className="w-full h-full object-cover opacity-60" />
+                    <div className="absolute inset-0 bg-background/40 pointer-events-none" />
+                  </>
+                )}
+                <div className="absolute top-md left-md bg-surface/80 backdrop-blur-md border border-white/10 p-sm rounded-lg flex flex-col gap-xs">
+                  <div className="flex items-center gap-sm">
+                    <span className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+                    <span className="font-label-sm text-label-sm text-on-background">Nearby tech belt</span>
+                  </div>
+                  <div className="flex items-center gap-sm">
+                    <span className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+                    <span className="font-label-sm text-label-sm text-on-background">ORR access corridors</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-sm justify-center">
+                <a
+                  href={googleMapsPinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-xs bg-primary text-on-primary font-label-sm px-md py-sm rounded-lg hover:bg-primary-fixed transition-colors"
+                >
+                  <MapPin size={16} aria-hidden />
+                  Open in Google Maps
+                </a>
+              </div>
+              {mapLat == null || mapLng == null ? (
+                <>
+                  <iframe
+                    title="Greater Hyderabad overview"
+                    src={HYDERABAD_REGION_EMBED}
+                    width="100%"
+                    height={220}
+                    className="border-0 rounded-lg mt-md"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <p className="text-xs text-on-surface-variant text-center">
+                    ©{' '}
+                    <a href="https://openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="text-primary">
+                      OpenStreetMap
+                    </a>
+                  </p>
+                </>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="lg:col-span-1 flex flex-col gap-lg">
+            <div className="glass-panel p-lg rounded-xl flex flex-col gap-md lg:sticky lg:top-24">
+              <div className="flex items-center gap-md pb-md border-b border-outline-variant/30">
+                <div className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary">person</span>
+                </div>
+                <div>
+                  <div className="font-body-lg text-body-lg text-on-background font-semibold">Urbanova Premier</div>
+                  <div className="font-label-sm text-label-sm text-on-surface-variant">Verified Seller</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowScheduleModal(true)}
+                className="w-full bg-primary text-on-primary font-body-md py-sm rounded-lg font-semibold hover:bg-primary-fixed transition-colors"
+              >
+                Schedule Visit
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowContactModal(true)}
+                className="w-full bg-transparent border border-white/20 text-on-background font-body-md py-sm rounded-lg font-semibold hover:bg-primary/10 hover:border-primary transition-all"
+              >
+                Contact Agent
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsNegotiationOpen(true)}
+                className="w-full text-left rounded-xl border border-primary/35 bg-surface-container-low/40 backdrop-blur-sm p-md flex items-center gap-md hover:bg-primary/10 hover:border-primary/55 transition-all shadow-[0_0_12px_rgba(242,202,80,0.12)] group"
+              >
+                <span className="material-symbols-outlined text-primary text-[28px] shrink-0">smart_toy</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-body-md font-semibold text-primary">AI Negotiator</div>
+                  <div className="font-label-sm text-on-surface-variant leading-snug">
+                    Tap to open the negotiation workspace
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0">
+                  chevron_right
+                </span>
+              </button>
+
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => setIsLiveabilityOpen(true)}
+                  className="w-full bg-primary/10 border border-primary/30 text-primary font-body-md py-sm rounded-lg font-semibold hover:bg-primary/20 transition-colors flex items-center justify-center gap-sm"
+                >
+                  <Home size={18} aria-hidden /> Liveability score
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsCalculatorOpen(true)}
+                className="w-full bg-primary/10 border border-primary/30 text-primary font-body-md py-sm rounded-lg font-semibold hover:bg-primary/20 transition-colors flex items-center justify-center gap-sm"
+              >
+                <Calculator size={18} /> Estimate Payments
+              </button>
+
+              <div className="flex gap-md pt-md border-t border-outline-variant/30">
+                <button type="button" className="flex-1 flex items-center justify-center gap-sm text-on-surface-variant hover:text-primary bg-transparent border-none text-sm">
+                  <Share2 size={18} /> Share
+                </button>
+                <button type="button" className="flex-1 flex items-center justify-center gap-sm text-on-surface-variant hover:text-primary bg-transparent border-none text-sm">
+                  <Heart size={18} /> Save
+                </button>
+              </div>
+
+              {isOwner && (
+                <div className="flex flex-col gap-sm pt-md border-t border-outline-variant/30">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/add', { state: { property } })}
+                    className="w-full py-sm rounded-lg border border-white/15 text-on-background hover:bg-white/5 text-sm"
+                  >
+                    Edit Listing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="w-full py-sm rounded-lg text-error text-sm opacity-90 hover:opacity-100 flex items-center justify-center gap-sm"
+                  >
+                    <Trash2 size={16} /> Delete Listing
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="auth-modal max-w-[400px]">
+            <h3 className="text-on-background">Delete Listing?</h3>
+            <p className="text-on-surface-variant mb-lg">Are you sure? This action cannot be undone.</p>
+            <div className="flex gap-md justify-center">
+              <button type="button" onClick={() => setShowDeleteModal(false)} className="px-md py-sm rounded-lg border border-white/20 text-on-background">
+                Cancel
+              </button>
+              <button type="button" onClick={confirmDelete} className="px-md py-sm rounded-lg bg-error-container text-on-error-container">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(showContactModal || showScheduleModal) && (
+        <div className="modal-overlay">
+          <div className="auth-modal max-w-[400px]">
+            <div className="flex justify-between items-start mb-md">
+              <h3 className="text-on-background m-0">{showContactModal ? 'Contact Agent / Seller' : 'Schedule Viewing'}</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowContactModal(false);
+                  setShowScheduleModal(false);
+                }}
+                className="bg-transparent text-on-background p-0 border-none"
+              >
+                <X />
+              </button>
+            </div>
+            <p className="text-on-surface-variant mb-lg">
+              {contactSuccess || scheduleSuccess ? 'Request sent successfully!' : 'Enter your details below to connect with the agent or seller.'}
+            </p>
+            {!contactSuccess && !scheduleSuccess && (
+              <form onSubmit={showContactModal ? handleContactSubmit : handleScheduleSubmit} className="flex flex-col gap-sm">
+                <input type="text" placeholder="Your Name" required className="bg-surface border border-outline-variant rounded-lg px-md py-sm text-on-background" />
+                <input type="email" placeholder="Your Email" required className="bg-surface border border-outline-variant rounded-lg px-md py-sm text-on-background" />
+                {showScheduleModal && <input type="date" required className="bg-surface border border-outline-variant rounded-lg px-md py-sm text-on-background" />}
+                <button type="submit" className="submit-btn mt-sm">
+                  Send Request
+                </button>
+              </form>
+            )}
+            {(contactSuccess || scheduleSuccess) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowContactModal(false);
+                  setShowScheduleModal(false);
+                  setContactSuccess(false);
+                  setScheduleSuccess(false);
+                }}
+                className="submit-btn w-full"
+              >
+                Close
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <MortgageCalculator isOpen={isCalculatorOpen} onClose={() => setIsCalculatorOpen(false)} price={property.price} />
+      <NegotiationAssistant property={property} isOpen={isNegotiationOpen} onClose={() => setIsNegotiationOpen(false)} />
+      <LiveabilityScore property={property} isOpen={isLiveabilityOpen} onClose={() => setIsLiveabilityOpen(false)} />
+    </div>
+  );
 }
 
 export default ListingDetails;

@@ -12,6 +12,12 @@
 # Dependencies
 node_modules/
 
+# Cursor MCP (never commit API keys)
+.cursor/mcp.json
+
+# Stitch HTML exports (local dev reference only)
+.stitch-reference/
+
 # Build output (avoid stale hashed bundles in repo)
 client/dist/
 dist/

@@ -1,83 +1,47 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Toast from './Toast';
 
 function Footer() {
-    const [toast, setToast] = useState(null); // { message, type }
-
-    const handleSubscribe = (e) => {
-        e.preventDefault();
-        setToast({ message: "Thanks for subscribing!", type: "success" });
-    };
-
-    return (
-        <footer className="footer">
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
-            <div className="container footer-content">
-                <div className="footer-brand">
-                    <Link to="/" className="logo">Urbanova.</Link>
-                    <p>Hyderabad‑metro listings &mdash; GHMC · Cyberabad · ORR growth corridors.</p>
-                </div>
-
-                <div className="footer-links">
-                    <div className="link-group">
-                        <h4>Platform</h4>
-                        <Link to="/">Home</Link>
-                        <Link to="/properties">Properties</Link>
-                        <Link to="/add">List Property</Link>
-                    </div>
-                    <div className="link-group">
-                        <h4>Company</h4>
-                        <Link to="/about">About Us</Link>
-                        <Link to="/careers">Careers</Link>
-                        <Link to="/contact">Contact</Link>
-                    </div>
-
-                    <div className="link-group" style={{ maxWidth: '300px' }}>
-                        <h4>Stay Connected</h4>
-                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                            Subscribe to our newsletter for the latest premium listings.
-                        </p>
-                        <form onSubmit={handleSubscribe} style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                type="email"
-                                placeholder="Enter your email"
-                                style={{
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid var(--border)',
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '4px',
-                                    color: '#fff',
-                                    flex: 1,
-                                    fontSize: '0.9rem'
-                                }}
-                            />
-                            <button
-                                type="submit"
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    fontSize: '0.9rem',
-                                    boxShadow: 'none',
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                Subscribe
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div className="footer-bottom container">
-                <p>&copy; {new Date().getFullYear()} Urbanova. Demonstration catalogue — illustrative photos and pins may not depict the exact parcels.</p>
-            </div>
-        </footer>
-    );
+  return (
+    <footer className="mt-auto shrink-0 border-t border-white/[0.06] bg-[#141418]">
+      <div className="w-full px-margin md:px-margin-page py-14 grid grid-cols-1 md:grid-cols-12 gap-12">
+        <div className="md:col-span-5 flex flex-col gap-4">
+          <div className="text-[12px] font-semibold tracking-[0.12em] uppercase text-white">Urbanova</div>
+          <p className="text-[14px] leading-relaxed text-white/55 max-w-md m-0">
+            Metro-focused residential and commercial listings in Greater Hyderabad. Filters, maps, and disclosures are
+            organised for serious search — not scroll-bait.
+          </p>
+          <p className="text-[11px] text-white/35 m-0">&copy; {new Date().getFullYear()} Urbanova. All rights reserved.</p>
+        </div>
+        <div className="md:col-span-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-4">Navigate</div>
+          <ul className="space-y-3 list-none m-0 p-0 text-[14px]">
+            <li>
+              <Link to="/properties" className="text-white/60 hover:text-white transition-colors">
+                Listings
+              </Link>
+            </li>
+            <li>
+              <Link to="/about" className="text-white/60 hover:text-white transition-colors">
+                About
+              </Link>
+            </li>
+            <li>
+              <Link to="/contact" className="text-white/60 hover:text-white transition-colors">
+                Contact
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div className="md:col-span-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-4">Compliance</div>
+          <p className="text-[12px] leading-relaxed text-white/45 m-0">
+            RERA and local registration numbers belong on each listing and in your sale documentation. Urbanova does not
+            replace legal due diligence; verify all project and promoter details with official records.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
 }
 
 export default Footer;

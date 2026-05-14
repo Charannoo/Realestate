@@ -1,14 +1,21 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
+const fs = require('fs');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const CLIENT_DIST = path.join(__dirname, '..', 'client', 'dist');
+const indexHtmlPath = path.join(CLIENT_DIST, 'index.html');
+const serveFrontend =
+    process.env.NODE_ENV === 'production' && fs.existsSync(indexHtmlPath);
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use('/uploads', express.static('uploads'));
 
 const authRoute = require('./routes/auth');
@@ -27,19 +34,42 @@ app.use('/api/users', usersRoute);
 app.use('/api/ai', aiRoute);
 app.use('/api/geo', geoRoute);
 
-app.get('/', (req, res) => {
-    res.send('Real Estate Marketplace API is running');
-});
+/** Dev / API-only: acknowledge root. Production with built SPA skips this (React owns `/`). */
+if (!serveFrontend) {
+    app.get('/', (req, res) => {
+        res.send('Real Estate Marketplace API is running — use npm run dev (Vite) for the SPA, or NODE_ENV=production after npm run build.');
+    });
+}
 
-// Database Connection
-// Supabase client is initialized in routes directly via config
-// MongoDB connection removed
+if (serveFrontend) {
+    app.use(express.static(CLIENT_DIST));
+    /** Deep links (/properties/...) — SPA without catching /api/* or /uploads/* */
+    app.use((req, res, next) => {
+        if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+            return next();
+        }
+        res.sendFile(indexHtmlPath, (err) => next(err));
+    });
+}
 
-app.listen(PORT, () => {
+// Database Connection — Supabase client is initialized per route modules
+
+const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET?.trim())) {
+    if (serveFrontend) {
+        console.log(`[server] Serving SPA from ${CLIENT_DIST}`);
+    }
+    if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET?.trim()) {
         console.warn(
             '[server] JWT_SECRET is unset in NODE_ENV=production — set a strong secret before exposing this API publicly.'
         );
     }
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`[server] Port ${PORT} already in use. Set PORT in server/.env to another port.`);
+        process.exit(1);
+    }
+    throw err;
 });

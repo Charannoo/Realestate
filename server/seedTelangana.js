@@ -46,7 +46,8 @@ const telanganaProperties = [
         description: "Lush 2-acre farmhouse estate on the outskirts of Hyderabad. Features a 3BHK bungalow, fruit orchards, organic farm, and a private swimming pool. Perfect as a weekend retreat or permanent eco-lifestyle residence.",
         price: 35000000,
         pincode: "501203",
-        image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80"
+        image:
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Agricultural_land_in_India.jpg/960px-Agricultural_land_in_India.jpg"
     },
     {
         title: "3BHK Gated Community Villa in Kompally",
@@ -75,10 +76,31 @@ const telanganaProperties = [
     {
         title: "High-Rise 2BHK in Kokapet Financial District",
         location: "Kokapet, Hyderabad, Telangana",
-        description: "Luxury 2BHK in a 40-storey high-rise tower in the upcoming Financial District. Sky lounge, infinity pool, concierge service, and spectacular views of Osman Sagar lake. RERA registered, OC received.",
+        description:
+            "Luxury 2BHK in a 40-storey high-rise tower in the upcoming Financial District. Sky lounge, infinity pool, concierge service, and spectacular views of Osman Sagar lake. Occupancy certificate status shared on enquiry.",
         price: 9200000,
         pincode: "500075",
-        image: "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=800&q=80"
+        image: "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=800&q=80",
+        rera_registered: true,
+    },
+    {
+        title: "3BHK Skyline Towers — Nanakramguda",
+        location: "Nanakramguda, Hyderabad, Telangana",
+        description:
+            "Under-construction ready-to-move 3BHK overlooking the Outer Ring Road. Clubhouse, rooftop jogging track, EV charging bays. Registration documentation available from the developer on request (demo).",
+        price: 11800000,
+        pincode: "500032",
+        image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
+        rera_registered: true,
+    },
+    {
+        title: "2.5BHK — Raidurg Metro Corridor",
+        location: "Raidurg, Hyderabad, Telangana",
+        description:
+            "Corner unit with dual balconies, semi-modular kitchen, society bore plus municipal water. Developer reference no. P02400003891 available on enquiry (demo). Five-minute walk to Raidurg metro.",
+        price: 11200000,
+        pincode: "500081",
+        image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
     },
     {
         title: "Independent House in Nizamabad",
@@ -98,6 +120,11 @@ const telanganaProperties = [
     }
 ];
 
+const rowsForInsert = telanganaProperties.map((row) => ({
+    ...row,
+    rera_registered: row.rera_registered === true,
+}));
+
 const supabase = require('./config/supabase');
 
 async function seedProperties() {
@@ -109,8 +136,8 @@ async function seedProperties() {
         if (deleteError) throw deleteError;
         console.log(`Deleted old properties`);
 
-        // Insert fresh Telangana properties
-        const { data: inserted, error: insertError } = await supabase.from('properties').insert(telanganaProperties).select();
+        // Insert fresh Telangana properties (exactly two rows carry rera_registered: true — Kokapet + Nanakramguda)
+        const { data: inserted, error: insertError } = await supabase.from('properties').insert(rowsForInsert).select();
         if (insertError) throw insertError;
 
         console.log(`Successfully seeded ${inserted.length} Telangana properties!`);

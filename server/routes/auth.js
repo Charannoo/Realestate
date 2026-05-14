@@ -10,6 +10,10 @@ const mapUser = (user) => {
     return { _id: id, ...rest };
 };
 
+function isProbablyEmail(s) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
 // Register
 router.post('/register', async (req, res) => {
     try {
@@ -71,11 +75,15 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
     try {
-        const { data: user, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', req.body.username)
-            .single();
+        const raw = (req.body.username || '').trim();
+        if (!raw) {
+            return res.status(400).json({ message: 'Username or email is required.' });
+        }
+
+        let q = supabase.from('users').select('*');
+        q = isProbablyEmail(raw) ? q.ilike('email', raw) : q.ilike('username', raw);
+
+        const { data: user, error } = await q.maybeSingle();
 
         if (error || !user) {
             return res.status(404).json("User not found!");

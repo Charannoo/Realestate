@@ -1,13 +1,8 @@
 import { Link } from 'react-router-dom';
 import { MapPin, ArrowRight } from 'lucide-react';
+import { resolveListingHeroUrl } from '../utils/listingHeroImage.js';
 
 function PropertyCard({ property }) {
-    const getImageUrl = (img) => {
-        if (!img) return null;
-        if (img.startsWith('http')) return img;
-        return `http://localhost:5000/uploads/${img}`;
-    };
-
     const handleImageError = (e) => {
         e.target.src =
             'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Charminar%2C_Hyderabad.jpg/960px-Charminar%2C_Hyderabad.jpg';
@@ -16,19 +11,13 @@ function PropertyCard({ property }) {
     return (
         <Link to={`/property/${property._id}`} className="card liquid-glass" style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
             <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
-                {property.image ? (
-                    <img
-                        src={getImageUrl(property.image)}
-                        alt={property.title}
-                        referrerPolicy="no-referrer"
-                        onError={handleImageError}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                    />
-                ) : (
-                    <div style={{ width: '100%', height: '100%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
-                        No Image
-                    </div>
-                )}
+                <img
+                    src={resolveListingHeroUrl(property)}
+                    alt={property.title}
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                />
                 <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)', padding: '20px', boxSizing: 'border-box' }}>
                     <p className="price" style={{ marginBottom: 0 }}>₹{property.price.toLocaleString('en-IN')}</p>
                 </div>
