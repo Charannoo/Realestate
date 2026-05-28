@@ -73,7 +73,7 @@ npm run dev
 
 ---
 
-## Production (single origin)
+## Production
 
 After a successful client build, Express serves **`client/dist`** and **`/uploads`** when **`NODE_ENV=production`** and **`client/dist/index.html`** exists.
 
